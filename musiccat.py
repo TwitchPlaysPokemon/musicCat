@@ -1,4 +1,4 @@
-# TPPRB MusicCat Song Library v2.2
+# TPPRB MusicCat Song Library v2.3
  
 from __future__ import print_function
 try:
@@ -15,7 +15,7 @@ from bson import CodecOptions, SON
 
 #TPP modules
 #import tokens, chat
- 
+
 """
 Expected db formats:
 pbr_ratings:
@@ -79,10 +79,10 @@ class MusicCat(object):
         metafiles = glob.glob("{}/*.yaml".format(root_path))
         self.songs = {}
         for metafilename in metafiles:
-            #try:
-            self.import_metadata(metafilename)
-            #except Exception as e:
-            #    print("Exception while loading file {}: {}".format(metafilename, e))
+            try:
+                self.import_metadata(metafilename)
+            except Exception as e:
+                print("Exception while loading file {}: {}".format(metafilename, e))
     
     """
     Metadata.yaml format:
@@ -103,7 +103,7 @@ class MusicCat(object):
     def import_metadata(self, metafilename):
         with open(metafilename) as metafile:
             newdata = yaml.load(metafile)
-        path = os.path.basename(metafilename)
+        path = os.path.dirname(metafilename)
         newsongs = {}
         for game in newdata:
             gameid = game["id"]
