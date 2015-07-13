@@ -20,6 +20,8 @@ from bson import CodecOptions, SON
 Expected db formats:
 pbr_ratings:
    {id={username, songid}, rating}
+pbr_songinfo:
+   {id={volumeMultiplier}}
 """
 class BadMatchError(ValueError):
     """Raised when a song id matches to a song with poor confidence."""
