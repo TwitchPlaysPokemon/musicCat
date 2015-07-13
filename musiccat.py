@@ -50,7 +50,7 @@ class InsufficientBidError(ValueError):
 
 class MusicCat(object):
     _categories = ["betting", "battle", "result"]
-    def __init__(self, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path):
+    def __init__(self, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume):
         self.client = MongoClient(mongo_uri)
         self.songdb = self.client.pbr_database
         self.rootpath = root_path
@@ -59,7 +59,9 @@ class MusicCat(object):
         self.minimum_match_ratio = minimum_match_ratio
         self.load_metadata(root_path)
         self.song_ratings = self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
+        self.song_info = self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
         self.bid_queue = {} # Bidding queue, for each category: {category: {song bid}}
+        self.base_volume = base_volume
         
         self.current_category = MusicCat._categories[0]
         self.current_song = None
@@ -105,6 +107,9 @@ class MusicCat(object):
             newdata = yaml.load(metafile)
         path = os.path.basename(metafilename)
         newsongs = {}
+
+        bulkOperation = self.song_info.initialize_ordered_bulk_op() #prepare to update self.song_info
+
         for game in newdata:
             gameid = game["id"]
             system = game["platform"]
@@ -117,7 +122,15 @@ class MusicCat(object):
                 song["lastplayed"] = datetime.datetime.now() - self.time_before_replay
                 if "type" in song: # Convert single type to a stored list
                     song["types"] = [song.pop("type")] 
+                
+                #queue an operation to update self.song_info
+                bulkOperation.find({'_id': song["id"]}).upsert().update({'$push':{'volumeMultiplier':1}})
+
                 newsongs[song["id"]] = song
+
+        #do all the updates at once
+        bulkOperation.execute()
+
         # All data successfully imported; apply to existing metadata
         self.songs.update(newsongs)
     
@@ -225,7 +238,25 @@ class MusicCat(object):
         if type(rating) != int or rating < 0 or rating >= 5:
             raise ValueError("Rating must be between 0 and 5.")
         self.song_ratings.find_one_and_update({"username": user.username, "songid": songid}, {"username": user.username, "songid": songid, "rating": rating}, upsert=True)
-   
+
+    def set_base_volume(self, basevolume):
+        """set the base volume for winamp"""
+        self.base_volume = basevolume
+
+    def set_song_volume(self, songid, volume):
+        """Update the database with the volume for the given song."""
+    if (volume < 0.0) or (volume > 2.0):
+        raise ValueError("Volume multiplier must be between 0 and 2.")
+    updatedSong = self.song_info.upsert({'_id': songid},{'_id': songid,"volumeMultiplier":volume})
+    if updatedSong == None:
+        raise StandardError("Song ID {} not found!".format(songid))
+        #self.winampplayer.setVolume(0 - 255 )
+    #if songid == currentsongid:
+        #update_winamp_volume()
+
+    def update_winamp_volume():
+        """update winamp's volume from self.base_volume and the song's volumeMultiplier"""
+        pass
  
 if __name__ == "__main__":
     import sys
@@ -235,7 +266,8 @@ if __name__ == "__main__":
     time_before_replay = datetime.timedelta(hours=6)
     minimum_match_ratio = 0.75
     minimum_autocorrect_ratio = 0.92
-    library = MusicCat(root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path)
+    base_volume = 150
+    library = MusicCat(root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume)
     while True:
         try:
             category = input("Enter category: ")
