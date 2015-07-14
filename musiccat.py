@@ -76,13 +76,16 @@ class MusicCat(object):
     
     def load_metadata(self, root_path):
         """ Clears songlist and loads all metadata.yaml files under the root directory"""
-        metafiles = glob.glob("{}/*.yaml".format(root_path))
         self.songs = {}
-        for metafilename in metafiles:
-            try:
-                self.import_metadata(metafilename)
-            except Exception as e:
-                print("Exception while loading file {}: {}".format(metafilename, e))
+        script_path = os.path.dirname(os.path.realpath(__file__)) #grab the path of this .py file, even if it's imported by another
+        for root, dirs, files in os.walk(script_path, topdown=False):
+            for filename in files:
+                if filename[-5:] == ".yaml": #filename[-5:] is the last 5 chars
+                    metafilename = os.path.join(root, filename)
+                    try:
+                        self.import_metadata(metafilename)
+                    except Exception as e:
+                        print("Exception while loading file {}: {}".format(metafilename, e))
     
     """
     Metadata.yaml format:
