@@ -66,13 +66,15 @@ class MusicCat(object):
         self.last_song = None
         
         # Initialize WinAmp and insert addl. function
-        def _playSoloFile(self, songfile):
-            """ Runs Winamp to play given song file"""
-            self.stop()
-            self.clearPlaylist()
-            p = subprocess.Popen('"{0}" "{1}"'.format(winamp_path, songfile))
-        winamp.Winamp.playSoloFile = _playSoloFile
+        self.winamp_path = winamp_path
         self.winampplayer = winamp.Winamp()
+    
+    
+    def play_file(self, songfile):
+        """ Runs Winamp to play given song file"""
+        self.winamp.stop()
+        self.winamp.clearPlaylist()
+        p = subprocess.Popen('"{0}" "{1}"'.format(self.winamp_path, songfile))
     
     def load_metadata(self, root_path):
         """ Clears songlist and loads all metadata.yaml files under the root directory"""
@@ -80,7 +82,7 @@ class MusicCat(object):
         script_path = os.path.dirname(os.path.realpath(__file__)) #grab the path of this .py file, even if it's imported by another
         for root, dirs, files in os.walk(script_path, topdown=False):
             for filename in files:
-                if filename[-5:] == ".yaml": #filename[-5:] is the last 5 chars
+                if filename.endswith(".yaml"):
                     metafilename = os.path.join(root, filename)
                     try:
                         self.import_metadata(metafilename)
@@ -193,7 +195,7 @@ class MusicCat(object):
        
         # And start the song.
         self.current_category = category
-        self.winampplayer.playSoloFile(nextsong["fullpath"])
+        self.play_file(nextsong["fullpath"])
         return nextsong # Return the song for display purposes
    
     def bid(self, user, songid, tokens, category=None):
@@ -232,7 +234,7 @@ class MusicCat(object):
  
 if __name__ == "__main__":
     import sys
-    root_path = "D:\Projects\TPPRB Music"
+    root_path = "D:\Projects\TPPRB Music" #Change these to your own local settings if you want to test.
     winamp_path = "C:/Program Files (x86)/Winamp/winamp.exe"
     mongo_uri = "mongodb://abylls-server:27017"
     time_before_replay = datetime.timedelta(hours=6)
