@@ -64,6 +64,7 @@ class MusicCat(object):
         self.song_info = self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
         self.bid_queue = {} # Bidding queue, for each category: {category: {song bid}}
         self.base_volume = base_volume
+        self.current_song_volume = 1.0 #will be overridden when it's time to play a song
         
         self.current_category = MusicCat._categories[0]
         self.current_song = None
@@ -202,10 +203,18 @@ class MusicCat(object):
         # Update lastplayed timestamp
         nextsong["lastplayed"] = datetime.now()
         self.songs.find_one_and_update({"id":nextsong["id"]}, nextsong)
+
+        matchingSongs = self.song_info.find({"_id":nextsong["id"]}).toArray()
+        if len(cursor) > 0:
+                #assuming that we only want the first match anyways
+                self.current_song_volume = matchingSongs[0].volumeMultiplier
+        else:
+                raise StandardError("Song ID {} not found!".format(nextsong["id"]))
        
         # And start the song.
         self.current_category = category
         self.winampplayer.playSoloFile(nextsong["fullpath"])
+        self.update_winamp_volume()
         return nextsong # Return the song for display purposes
    
     def bid(self, user, songid, tokens, category=None):
@@ -245,20 +254,23 @@ class MusicCat(object):
         """set the base volume for winamp"""
         self.base_volume = basevolume
 
-    def set_song_volume(self, songid, volume):
+    def set_current_song_volume(self, songid, volume):
         """Update the database with the volume for the given song."""
     if (volume < 0.0) or (volume > 2.0):
         raise ValueError("Volume multiplier must be between 0 and 2.")
-    updatedSong = self.song_info.upsert({'_id': songid},{'_id': songid,"volumeMultiplier":volume})
+    updatedSong = self.song_info.update({'_id': songid},{'_id': songid,"volumeMultiplier":volume})
     if updatedSong == None:
         raise StandardError("Song ID {} not found!".format(songid))
-        #self.winampplayer.setVolume(0 - 255 )
-    #if songid == currentsongid:
-        #update_winamp_volume()
+    elif songid == currentsongid:
+        self.current_song_volume = volume
+        self.update_winamp_volume()
 
-    def update_winamp_volume():
+    def update_winamp_volume(self):
         """update winamp's volume from self.base_volume and the song's volumeMultiplier"""
-        pass
+        winamp_volume = int(self.base_volume * self.current_song_volume)
+        winamp_volume = min(max(winamp_volume,0),255)#clamp to 0-255
+        self.winampplayer.setVolume(winamp_volume)
+        #log("set winamp volume to "+str(winamp_volume))
  
 if __name__ == "__main__":
     import sys
