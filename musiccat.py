@@ -20,6 +20,8 @@ from bson import CodecOptions, SON
 Expected db formats:
 pbr_ratings:
    {id={username, songid}, rating}
+pbr_songinfo:
+   {id={volumeMultiplier}}
 """
 class BadMatchError(ValueError):
     """Raised when a song id matches to a song with poor confidence."""
@@ -50,16 +52,19 @@ class InsufficientBidError(ValueError):
 
 class MusicCat(object):
     _categories = ["betting", "battle", "result"]
-    def __init__(self, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path):
+    def __init__(self, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume):
         self.client = MongoClient(mongo_uri)
         self.songdb = self.client.pbr_database
         self.rootpath = root_path
         self.time_before_replay = time_before_replay
         self.minimum_autocorrect_ratio = minimum_autocorrect_ratio
         self.minimum_match_ratio = minimum_match_ratio
-        self.load_metadata(root_path)
-        self.song_ratings = self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
+        self.song_ratings = None # self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
+        self.song_info = None #self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
         self.bid_queue = {} # Bidding queue, for each category: {category: {song bid}}
+        self.load_metadata(root_path)
+        self.base_volume = base_volume
+        self.current_song_volume = 1.0 #will be overridden when it's time to play a song
         
         self.current_category = MusicCat._categories[0]
         self.current_song = None
@@ -79,8 +84,8 @@ class MusicCat(object):
     def load_metadata(self, root_path):
         """ Clears songlist and loads all metadata.yaml files under the root directory"""
         self.songs = {}
-        script_path = os.path.dirname(os.path.realpath(__file__)) #grab the path of this .py file, even if it's imported by another
-        for root, dirs, files in os.walk(script_path, topdown=False):
+        #script_path = os.path.dirname(os.path.realpath(__file__)) #grab the path of this .py file, even if it's imported by another
+        for root, dirs, files in os.walk(root_path):
             for filename in files:
                 if filename.endswith(".yaml"):
                     metafilename = os.path.join(root, filename)
@@ -110,6 +115,10 @@ class MusicCat(object):
             newdata = yaml.load(metafile)
         path = os.path.dirname(metafilename)
         newsongs = {}
+
+        if self.song_info:
+            bulkOperation = self.song_info.initialize_ordered_bulk_op() #prepare to update self.song_info
+
         for game in newdata:
             gameid = game["id"]
             system = game["platform"]
@@ -122,7 +131,17 @@ class MusicCat(object):
                 song["lastplayed"] = datetime.datetime.now() - self.time_before_replay
                 if "type" in song: # Convert single type to a stored list
                     song["types"] = [song.pop("type")] 
+                
+                #queue an operation to update self.song_info
+                if self.song_info:
+                    bulkOperation.find({'_id': song["id"]}).upsert().update({'$push':{'volumeMultiplier':1}})
+
                 newsongs[song["id"]] = song
+
+        #do all the updates at once
+        if self.song_info:
+            bulkOperation.execute()
+
         # All data successfully imported; apply to existing metadata
         self.songs.update(newsongs)
     
@@ -191,7 +210,16 @@ class MusicCat(object):
             nextsong = get_random(self, category)
         # Update lastplayed timestamp
         nextsong["lastplayed"] = datetime.now()
-        self.songs.find_one_and_update({"id":nextsong["id"]}, nextsong)
+        if self.song_info:
+            self.song_info.find_one_and_update({"id":nextsong["id"]}, nextsong)
+
+        if self.song_info:
+            matchingSongs = self.song_info.find({"_id":nextsong["id"]}).toArray()
+            if len(cursor) > 0:
+                    #assuming that we only want the first match anyways
+                    self.current_song_volume = matchingSongs[0].volumeMultiplier
+            else:
+                    raise StandardError("Song ID {} not found!".format(nextsong["id"]))
        
         # And start the song.
         self.current_category = category
@@ -230,7 +258,29 @@ class MusicCat(object):
         if type(rating) != int or rating < 0 or rating >= 5:
             raise ValueError("Rating must be between 0 and 5.")
         self.song_ratings.find_one_and_update({"username": user.username, "songid": songid}, {"username": user.username, "songid": songid, "rating": rating}, upsert=True)
-   
+
+    def set_base_volume(self, basevolume):
+        """set the base volume for winamp"""
+        self.base_volume = basevolume
+        self.update_winamp_volume()
+
+    def set_current_song_volume(self, songid, volume):
+        """Update the database with the volume for the given song."""
+        if (volume < 0.0) or (volume > 2.0):
+            raise ValueError("Volume multiplier must be between 0 and 2.")
+        updatedSong = self.song_info.update({'_id': songid},{'_id': songid,"volumeMultiplier":volume})
+        if updatedSong == None:
+            raise StandardError("Song ID {} not found!".format(songid))
+        elif songid == currentsongid:
+            self.current_song_volume = volume
+            self.update_winamp_volume()
+
+    def update_winamp_volume(self):
+        """update winamp's volume from self.base_volume and the song's volumeMultiplier"""
+        winamp_volume = int(self.base_volume * self.current_song_volume)
+        winamp_volume = min(max(winamp_volume,0),255)#clamp to 0-255
+        self.winampplayer.setVolume(winamp_volume)
+        #log("set winamp volume to "+str(winamp_volume))
  
 if __name__ == "__main__":
     import sys
@@ -240,7 +290,8 @@ if __name__ == "__main__":
     time_before_replay = datetime.timedelta(hours=6)
     minimum_match_ratio = 0.75
     minimum_autocorrect_ratio = 0.92
-    library = MusicCat(root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path)
+    base_volume = 150
+    library = MusicCat(root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume)
     while True:
         try:
             category = input("Enter category: ")

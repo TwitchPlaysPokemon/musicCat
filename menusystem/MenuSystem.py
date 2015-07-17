@@ -112,14 +112,14 @@ class Menu:
 		"""
 		loop = True
 		while loop != False: # Specifically check for False; handlers may not return anything (None), or another false-ish value
-			c = raw_input(self).strip()
+			c = input(self).strip()
 			if c in self.choices:
 				# Do this if there is no sub menu
 				if self[c].handler and not self[c].subMenu:
 					try:
 						loop = self[c].handler(self[c].value)
 					except Exception as e:
-						print e
+						print(e)
 						loop = True
 
 				# Do this is there is a sub menu
@@ -132,7 +132,7 @@ class Menu:
 								if data is None: continue # Data was invalid, so don't run handler
 								loop = self[c].handler(self[c].subMenu.data)
 						except Exception as e:
-							print e
+							print(e)
 							loop = True
 
 
@@ -204,16 +204,16 @@ class DataMenu(Menu):
 		Data is also returned to caller directly, for convenience.
 		"""
 		while True:
-			val = raw_input(self)
+			val = input(self)
 			if self.valid != None:
 				try:
 					val = self.valid(val)
 				except Exception as e: #We'll assume exceptions are another way of saying "That data is invalid"
-					if self.err: print e, '\n', self.err
+					if self.err: print(e, '\n', self.err)
 					if self.abort: break
 					else: continue
 				if val == None:
-					if self.err: print self.err
+					if self.err: print(self.err)
 					if self.abort: break
 					else: continue
 				else:

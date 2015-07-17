@@ -1,2 +1,2 @@
-from MenuSystem import *
-from XMLMenuGenie import *
+from .MenuSystem import *
+from .XMLMenuGenie import *
