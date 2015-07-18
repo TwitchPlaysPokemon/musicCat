@@ -6,7 +6,7 @@ try:
 except: # Temporary hack until the builtins future module is properly installed
     input = raw_input
 
-import os, random, datetime, glob
+import os, random, datetime, glob, subprocess
 import winamp
 import yaml
 import Levenshtein
@@ -72,7 +72,7 @@ class MusicCat(object):
         
         # Initialize WinAmp and insert addl. function
         self.winamp_path = winamp_path
-        self.winampplayer = winamp.Winamp()
+        self.winamp = winamp.Winamp()
     
     
     def play_file(self, songfile):
@@ -160,10 +160,10 @@ class MusicCat(object):
 
         Only picks songs inside a category, that haven't played within _time_before_replay
         """
-        songs_category = [song for song in self.songs \
+        songs_category = [song for song in self.songs.values() \
                             if category in song["types"] \
-                            and song["lastplayed"] < datetime.now() - self.time_before_replay]
-        return random.choice(song_category)
+                            and song["lastplayed"] < datetime.datetime.now() - self.time_before_replay]
+        return random.choice(songs_category)
     
     def find_song_info(self, songid):
         """ Fuzzy-match songid to either song id, or full id (game-song)
@@ -200,16 +200,16 @@ class MusicCat(object):
         Otherwise, pick a song randomly for the given category.
         Returns the info for the played song, for display status purposes.
         """
-        if self.bid_queue.has_key(category) and use_bid:
+        if category in self.bid_queue and use_bid:
             queued = self.bid_queue.pop(category)
             nextsong = queued["song"]
             # Charge the user their bid
             tokens.adjust_tokens(queued["username"], -queued["tokens"])
         else:
             #Otherwise, pick a random song for this category.
-            nextsong = get_random(self, category)
+            nextsong = self.get_random(category)
         # Update lastplayed timestamp
-        nextsong["lastplayed"] = datetime.now()
+        nextsong["lastplayed"] = datetime.datetime.now()
         if self.song_info:
             self.song_info.find_one_and_update({"id":nextsong["id"]}, nextsong)
 
@@ -279,7 +279,7 @@ class MusicCat(object):
         """update winamp's volume from self.base_volume and the song's volumeMultiplier"""
         winamp_volume = int(self.base_volume * self.current_song_volume)
         winamp_volume = min(max(winamp_volume,0),255)#clamp to 0-255
-        self.winampplayer.setVolume(winamp_volume)
+        self.winamp.setVolume(winamp_volume)
         #log("set winamp volume to "+str(winamp_volume))
  
 if __name__ == "__main__":

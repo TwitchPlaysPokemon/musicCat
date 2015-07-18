@@ -1,6 +1,6 @@
 # MusicCat Test suite "TesterMime" v0.1
 
-import sys, os
+import sys, os, traceback
 from menusystem import *
 from musiccat import MusicCat
 from pprint import pprint
@@ -14,7 +14,7 @@ def testwrap(function, *args, **kwargs):
             val = function(*(args+fargs), **newkwargs)
             print(val)
         except Exception as e:
-            print(e)
+            print(traceback.format_exc())
     return wrapper
 
 def nullfunc(*args, **kwargs):
@@ -29,31 +29,38 @@ def validate_path(path):
 class TesterMime(object):
     def __init__(self, musiccat):
         self.musiccat = musiccat
-        
+        self.cat = self.musiccat.current_category
         play_menu = [
-            Choice(1, "Play Song ID", handler=testwrap(nullfunc), subMenu=DataMenu("Play Song", "Enter song id: ")),
+            Choice(1, "Play Song ID", handler=testwrap(nullfunc), subMenu=DataMenu("DISABLED", "Enter song id: ")),
             Choice(2, "Play Next", handler=testwrap(musiccat.play_next_song)),
-            Choice(3, "Play Random", handler=testwrap(musiccat.play_next_song, use_bid=False)),
+            Choice(3, "Play Random", handler=self.playrandom),
             Choice(4, "Play Weighted Random", None),
-            Choice(0, "Cancel", handler=lambda x: False)
+            Choice(5, "Set Category", handler=self.set_category, subMenu=DataMenu("Category", "Enter category: ", valid=lambda cat: cat if cat in MusicCat._categories else None)),
+            Choice(0, "Cancel", handler=lambda : False)
             ]
 
         
         main_menu = [
             Choice(1, "Check Song", handler=testwrap(musiccat.find_song_info), subMenu=DataMenu("Check Song", "Enter song id: ")),
-            Choice(2, "Play Song", subMenu=play_menu),
+            Choice(2, "Play Song", subMenu=Menu("Play Menu", play_menu)),
             Choice(3, "Rate Song", handler=testwrap(musiccat.rate_command), subMenu=DataMenu("Rate Song", "Enter song id and rating: ")),
             Choice(4, "Bid Song", handler=testwrap(nullfunc), subMenu=DataMenu("Bid Song", "Enter song id and bid: ")),
             Choice(5, "Volume", handler=testwrap(musiccat.set_base_volume), subMenu=DataMenu("Volume", "Set new volume(0-255): ", valid=int)),
             Choice(6, "Import pack", handler=testwrap(musiccat.import_metadata), subMenu=DataMenu("Import", "Enter metadata file path: ", validate_path)),
             Choice(7, "Debug", handler=testwrap(self.debug_output)),
-            Choice(0, "Exit", handler=lambda x: False)
+            Choice(0, "Exit", handler=lambda : False)
             ]
 
         self.mainmenu = Menu("MusicCat Test", main_menu)
         self.mainmenu.waitForInput()
     
-    def debug_output(self, args):
+    def set_category(self, cat):
+        self.cat = cat
+    
+    def playrandom(self):
+        pprint(self.musiccat.play_next_song(self.cat, use_bid=False))
+    
+    def debug_output(self, *args):
         pprint(self.musiccat.songs)
 
 if __name__ == "__main__":
