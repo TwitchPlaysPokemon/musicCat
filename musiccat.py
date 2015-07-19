@@ -6,7 +6,7 @@ try:
 except: # Temporary hack until the builtins future module is properly installed
     input = raw_input
 
-import os, random, datetime, glob, subprocess
+import os, random, datetime, subprocess
 import winamp
 import yaml
 import Levenshtein
@@ -19,9 +19,9 @@ from bson import CodecOptions, SON
 """
 Expected db formats:
 pbr_ratings:
-   {id={username, songid}, rating}
+   {_id={username, songid}, rating:song rating, last_listened: datetime user last listened}
 pbr_songinfo:
-   {id={volumeMultiplier}}
+   {_id=songid, volume:volume multiplier}
 """
 class BadMatchError(ValueError):
     """Raised when a song id matches to a song with poor confidence."""
@@ -59,9 +59,9 @@ class MusicCat(object):
         self.time_before_replay = time_before_replay
         self.minimum_autocorrect_ratio = minimum_autocorrect_ratio
         self.minimum_match_ratio = minimum_match_ratio
-        self.song_ratings = None # self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
-        self.song_info = None #self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
-        self.bid_queue = {} # Bidding queue, for each category: {category: {song bid}}
+        self.song_ratings =  self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
+        self.song_info = self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
+        self.bid_queue = {} # Bidding queue, for each category: {category: {song: songid, username: name, bid: amount}}
         self.load_metadata(root_path)
         self.base_volume = base_volume
         self.current_song_volume = 1.0 #will be overridden when it's time to play a song
@@ -117,7 +117,7 @@ class MusicCat(object):
         newsongs = {}
 
         if self.song_info:
-            bulkOperation = self.song_info.initialize_ordered_bulk_op() #prepare to update self.song_info
+            bulkOperation = self.song_info.initialize_unordered_bulk_op() #prepare to update self.song_info
 
         for game in newdata:
             gameid = game["id"]
@@ -130,11 +130,11 @@ class MusicCat(object):
                 song["game"] = game
                 song["lastplayed"] = datetime.datetime.now() - self.time_before_replay
                 if "type" in song: # Convert single type to a stored list
-                    song["types"] = [song.pop("type")] 
+                    song["types"] = [song.pop("type")]
                 
                 #queue an operation to update self.song_info
                 if self.song_info:
-                    bulkOperation.find({'_id': song["id"]}).upsert().update({'$push':{'volumeMultiplier':1}})
+                    bulkOperation.find({'_id': song["id"]}).upsert().update({'$setOnInsert':{'volumeMultiplier':1}})
 
                 newsongs[song["id"]] = song
 
@@ -146,6 +146,7 @@ class MusicCat(object):
         self.songs.update(newsongs)
     
     def next_category(self):
+        """Returns the category that follows the currently-playing category"""
         next_ind = MusicCat._categories.index(self.current_category) + 1
         if next_ind == len(_categories):
             next_ind = 0
@@ -210,19 +211,19 @@ class MusicCat(object):
             nextsong = self.get_random(category)
         # Update lastplayed timestamp
         nextsong["lastplayed"] = datetime.datetime.now()
+        # fetch volume
         if self.song_info:
-            self.song_info.find_one_and_update({"id":nextsong["id"]}, nextsong)
-
-        if self.song_info:
-            matchingSongs = self.song_info.find({"_id":nextsong["id"]}).toArray()
-            if len(cursor) > 0:
-                    #assuming that we only want the first match anyways
-                    self.current_song_volume = matchingSongs[0].volumeMultiplier
+            matching_song = self.song_info.find_one({"_id":nextsong["id"]})
+            if matching_song:
+                #assuming that we only want the first match anyways
+                self.current_song_volume = matchingSong.volume_multiplier
+                self.update_winamp_volume()
             else:
-                    raise StandardError("Song ID {} not found!".format(nextsong["id"]))
+                raise StandardError("Volume for Song ID {} not found!".format(nextsong["id"]))
        
         # And start the song.
         self.current_category = category
+        self.current_song = nextsong
         self.play_file(nextsong["fullpath"])
         return nextsong # Return the song for display purposes
    
@@ -281,6 +282,10 @@ class MusicCat(object):
         winamp_volume = min(max(winamp_volume,0),255)#clamp to 0-255
         self.winamp.setVolume(winamp_volume)
         #log("set winamp volume to "+str(winamp_volume))
+    
+    def set_cooldown(self, time_in_minutes):
+        self.time_before_replay = datetime.timedelta(minutes = time_in_minutes)
+    
  
 if __name__ == "__main__":
     import sys
