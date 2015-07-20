@@ -51,7 +51,7 @@ class InsufficientBidError(ValueError):
         self.current_bid = current_bid
 
 class MusicCat(object):
-    _categories = ["betting", "battle", "result"]
+    _categories = ["betting", "warning", "battle", "result"]
     def __init__(self, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume):
         self.client = MongoClient(mongo_uri)
         self.songdb = self.client.pbr_database
@@ -284,7 +284,30 @@ class MusicCat(object):
     
     def set_cooldown(self, time_in_minutes):
         self.time_before_replay = datetime.timedelta(minutes = time_in_minutes)
-    
+
+    def bid_cmd(userdata,args):
+        user = userdata['username'] #Assuming userdata is a dict here; I'm not sure how streamer is supposed to implement userdata
+        songid, tokens = args.split(" ")
+        try:
+            tokens = int(tokens)
+        except:
+            raise ValueError("Invalid amount of tokens!")
+        nextcategory = self.next_category()
+        songinfo = self.find_song_info(songid)  
+
+        category_is_ok = False
+        #if you bid during betting (when the next category is battle), you should still be allowed to bid for warning songs
+        if nextcategory == "warning":
+            nextcategory = "battle"
+            if "warning" in songinfo['types':
+                category_is_ok = True
+        if nextcategory in songinfo['types']:
+            category_is_ok = True
+
+        if category_is_ok:
+            self.bid(user, songid, tokens, nextcategory)
+        else:
+            raise InvalidCategoryError(nextcategory,songid)
  
 if __name__ == "__main__":
     import sys
