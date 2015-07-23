@@ -285,7 +285,7 @@ class MusicCat(object):
     def set_cooldown(self, time_in_minutes):
         self.time_before_replay = datetime.timedelta(minutes = time_in_minutes)
 
-    def bid_cmd(userdata,args):
+    def bid_cmd(self, userdata,args):
         user = userdata['username'] #Assuming userdata is a dict here; I'm not sure how streamer is supposed to implement userdata
         songid, tokens = args.split(" ")
         try:
