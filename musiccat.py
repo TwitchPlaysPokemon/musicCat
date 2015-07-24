@@ -237,11 +237,13 @@ class MusicCat(object):
         songinfo = self.find_song_info(songid)  
 
         category_is_ok = False
-        #if you bid during betting (when the next category is battle), you should still be allowed to bid for warning songs
+        #if you bid during betting (when the next category is technically warning), you should still be allowed to bid for battle songs
         if nextcategory == "warning":
             nextcategory = "battle"
-            if "warning" in songinfo['types':
+            if "warning" in songinfo['types']:
                 category_is_ok = True
+	    #battle songs are caught by the next if-statement
+
         if nextcategory in songinfo['types']:
             category_is_ok = True
 
@@ -273,8 +275,9 @@ class MusicCat(object):
         else:
             self.bid_queue[category] = {"username": user.username, "song":song["id"], "tokens": tokens}
     
-    def rate_command(self, username, args):
-        pass
+    def rate_command(self, user, args):
+        songid, rating = args.split(" ")
+	self.rate(user, songid, rating)	#error checking is all done in here
     
     def rate(self, user, songid, rating):
         """ Set a user's rating of a given song"""
