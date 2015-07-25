@@ -236,14 +236,12 @@ class MusicCat(object):
         nextcategory = self.next_category()
         songinfo = self.find_song_info(songid)  
 
-        category_is_ok = False
-        #if you bid during betting (when the next category is technically warning), you should still be allowed to bid for battle songs
+
+        #if you bid during betting (when the next category is technically warning), treat the next category as battle
         if nextcategory == "warning":
             nextcategory = "battle"
-            if "warning" in songinfo['types']:
-                category_is_ok = True
-	    #battle songs are caught by the next if-statement
 
+        category_is_ok = False
         if nextcategory in songinfo['types']:
             category_is_ok = True
 
