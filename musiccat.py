@@ -8,7 +8,7 @@ except: # Temporary hack until the builtins future module is properly installed
 
 import os, random, datetime, subprocess
 import winamp
-import yaml
+import selectorcats
 import Levenshtein
 from pymongo import MongoClient
 from bson import CodecOptions, SON
