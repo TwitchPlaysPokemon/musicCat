@@ -275,7 +275,7 @@ class MusicCat(object):
     
     def rate_command(self, user, args):
         songid, rating = args.split(" ")
-	self.rate(user, songid, rating)	#error checking is all done in here
+        self.rate(user, songid, rating)	#error checking is all done in here
     
     def rate(self, user, songid, rating):
         """ Set a user's rating of a given song"""
