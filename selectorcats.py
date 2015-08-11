@@ -108,7 +108,6 @@ class Catamari:
         self.song = musiccat.song_info.find_one({"_id":"katamari_on_the_rocks"})
     def get_next_song(self):
         #KATAMARI~ DO YOUR BEST!
-        if(self
         return self.song
     def configure(self, arguments):
         pass
