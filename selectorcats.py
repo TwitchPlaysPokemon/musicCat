@@ -103,11 +103,14 @@ class specificGameCat:
         """
 
 class Catamari:
-    """Example selectorCat that only plays one particular song."""
+    """Example selectorCat that only plays one particular song.
+     ♫ ┌༼ຈل͜ຈ༽┘ ♪ KATAMARI DO YOUR BEST ♪ └༼ຈل͜ຈ༽┐ ♫"""
     def __init__(self, musiccat):
         self.song = musiccat.song_info.find_one({"_id":"katamari_on_the_rocks"})
-    def get_next_song(self):
-        #KATAMARI~ DO YOUR BEST!
-        return self.song
+    def get_next_song(self, category):
+        if(category == "betting"):
+          return self.song
+        else:
+          raise NoMatchingSongError(category)
     def configure(self, arguments):
         pass
