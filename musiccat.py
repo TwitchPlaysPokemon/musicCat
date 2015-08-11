@@ -52,7 +52,7 @@ class InsufficientBidError(ValueError):
 
 class MusicCat(object):
     _categories = ["betting", "warning", "battle", "result"]
-    def __init__(self, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume):
+    def __init__(self, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_selectorcat_class):
         self.client = MongoClient(mongo_uri)
         self.songdb = self.client.pbr_database
         self.rootpath = root_path
@@ -62,13 +62,19 @@ class MusicCat(object):
         self.song_ratings =  self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
         self.song_info = self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
         self.bid_queue = {} # Bidding queue, for each category: {category: {song: songid, username: name, bid: amount}}
+
         self.load_metadata(root_path)
+
         self.base_volume = base_volume
         self.current_song_volume = 1.0 #will be overridden when it's time to play a song
         
         self.current_category = MusicCat._categories[0]
         self.current_song = None
         self.last_song = None
+
+        #After self.load_metadata() is called, initialize the selectorcats from the class
+        self.selectorcat = default_selectorcat_class(self)
+        self.default_selectorcat = default_selectorcat_class(self)
         
         # Initialize WinAmp and insert addl. function
         self.winamp_path = winamp_path
@@ -151,20 +157,6 @@ class MusicCat(object):
             next_ind = 0
         return _categories[next_ind]
     
-    def get_weighted_random(self, category):
-        """Not yet implemented"""
-        return self.get_random(category)
-    
-    def get_random(self, category):
-        """ Returns song info by random
-
-        Only picks songs inside a category, that haven't played within _time_before_replay
-        """
-        songs_category = [song for song in self.songs.values() \
-                            if category in song["types"] \
-                            and song["lastplayed"] < datetime.datetime.now() - self.time_before_replay]
-        return random.choice(songs_category)
-    
     def find_song_info(self, songid):
         """ Fuzzy-match songid to either song id, or full id (game-song)
 
@@ -206,8 +198,12 @@ class MusicCat(object):
             # Charge the user their bid
             tokens.adjust_tokens(queued["username"], -queued["tokens"])
         else:
-            #Otherwise, pick a random song for this category.
-            nextsong = self.get_random(category)
+            #Otherwise, let the selectorCat decide a random song for this category.
+            try:
+                nextsong = self.selectorcat.get_next_song(category)
+            except selectorcats.NoMatchingSongError: 
+                #If there isn't a song that matches (such as a game with no warning music) use the default selectorCat
+                nextsong = self.default_selectorcat.get_next_song(category)
         # Update lastplayed timestamp
         nextsong["lastplayed"] = datetime.datetime.now()
         # fetch volume
@@ -319,7 +315,8 @@ if __name__ == "__main__":
     minimum_match_ratio = 0.75
     minimum_autocorrect_ratio = 0.92
     base_volume = 150
-    library = MusicCat(root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume)
+    default_selectorcat_class = selectorcats.defaultCat
+    library = MusicCat(root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume, default_selectorcat_class)
     while True:
         try:
             category = input("Enter category: ")
