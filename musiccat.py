@@ -7,12 +7,12 @@ except: # Temporary hack until the builtins future module is properly installed
     input = raw_input
 
 import os, random, datetime, subprocess
+import yaml, datetime
 import winamp
 import selectorcats
 import Levenshtein
 from pymongo import MongoClient
 from bson import CodecOptions, SON
-
 #TPP modules
 #import tokens, chat
 

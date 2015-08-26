@@ -3,6 +3,7 @@
 import sys, os, traceback
 from menusystem import *
 from musiccat import MusicCat
+import selectorcats
 from pprint import pprint
 
 def testwrap(function, *args, **kwargs):
@@ -102,10 +103,11 @@ if __name__ == "__main__":
     root_path = "D:\Projects\TPPRB Music"
     winamp_path = "C:/Program Files (x86)/Winamp/winamp.exe"
     mongo_uri = "mongodb://abylls-server:27017"
-    time_before_replay = datetime.timedelta(minutes=6)
+    time_before_replay = datetime.timedelta(minutes=3)
     minimum_match_ratio = 0.75
     minimum_autocorrect_ratio = 0.92
     base_volume = 150
-    library = MusicCat(root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume)
+    default_selectorcat_class = selectorcats.defaultCat
+    library = MusicCat(root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume, default_selectorcat_class)
 
     TesterMime(library)
