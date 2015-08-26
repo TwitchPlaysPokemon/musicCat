@@ -1,5 +1,6 @@
+# -*- coding: UTF-8 -*-
 from abc import ABCMeta, abstractmethod
-import random
+import random, datetime
 
 class NoMatchingSongError(ValueError):
     """Raised when a selectorCat fails to find a fitting song for a given category."""
@@ -9,20 +10,20 @@ class NoMatchingSongError(ValueError):
 class selectorCat:
     """A class that implements some form of song selection.
 
-SelectorCats without properly punny class names are not allowed and are to be told that they have been very bad kitties."""
+    SelectorCats without properly punny class names are not allowed and are to be told that they have been very bad kitties."""
     __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_next_song(self,category):
-	"""Put the song-choosing algorithm here. Expected to return something of the form
-	{id:"song_id","lastplayed":datetime.datetime(), fullpath: ""} or throw a NoMatchingSongError."""
+        """Put the song-choosing algorithm here. Expected to return something of the form
+        {id:"song_id","lastplayed":datetime.datetime(), fullpath: ""} or throw a NoMatchingSongError."""
         pass
 
     @abstractmethod
     def configure(self,arguments):
-	"""If an authorized user says !configure in chat, an array containing the arguments will be passed to this function.
-	Use this instead of __init__ to pass in initial values.
-	"""
+        """If an authorized user says !configure in chat, an array containing the arguments will be passed to this function.
+        Use this instead of __init__ to pass in initial values.
+        """
         pass
 
     @classmethod
@@ -67,8 +68,6 @@ class completelyRandomCat:
     def configure(self, arguments):
         pass
 
-
-
 class specificGameCat:
     """Only pick songs from a specific game. Use !configure to add games to this list."""
     def __init__(self, musiccat):
@@ -104,7 +103,7 @@ class specificGameCat:
 
 class Catamari:
     """Example selectorCat that only plays one particular song.
-     ♫ ┌༼ຈل͜ຈ༽┘ ♪ KATAMARI DO YOUR BEST ♪ └༼ຈل͜ຈ༽┐ ♫"""
+    ♫ ┌༼ຈل͜ຈ༽┘ ♪ KATAMARI DO YOUR BEST ♪ └༼ຈل͜ຈ༽┐ ♫"""
     def __init__(self, musiccat):
         self.song = musiccat.song_info.find_one({"_id":"katamari_on_the_rocks"})
     def get_next_song(self, category):
