@@ -1,5 +1,6 @@
+# -*- coding: UTF-8 -*-
 from abc import ABCMeta, abstractmethod
-import random
+import random, datetime
 
 class NoMatchingSongError(ValueError):
     """Raised when a selectorCat fails to find a fitting song for a given category."""
@@ -67,8 +68,6 @@ class completelyRandomCat:
     def configure(self, arguments):
         pass
 
-
-
 class specificGameCat:
     """Only pick songs from a specific game. Use !configure to add games to this list."""
     def __init__(self, musiccat):
@@ -104,7 +103,7 @@ class specificGameCat:
 
 class Catamari:
     """Example selectorCat that only plays one particular song.
-     ♫ ┌༼ຈل͜ຈ༽┘ ♪ KATAMARI DO YOUR BEST ♪ └༼ຈل͜ຈ༽┐ ♫"""
+    ♫ ┌༼ຈل͜ຈ༽┘ ♪ KATAMARI DO YOUR BEST ♪ └༼ຈل͜ຈ༽┐ ♫"""
     def __init__(self, musiccat):
         self.song = musiccat.song_info.find_one({"_id":"katamari_on_the_rocks"})
     def get_next_song(self, category):
