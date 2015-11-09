@@ -9,20 +9,20 @@ class NoMatchingSongError(ValueError):
 class selectorCat:
     """A class that implements some form of song selection.
 
-SelectorCats without properly punny class names are not allowed and are to be told that they have been very bad kitties."""
+    SelectorCats without properly punny class names are not allowed and are to be told that they have been very bad kitties."""
     __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_next_song(self,category):
-	"""Put the song-choosing algorithm here. Expected to return something of the form
-	{id:"song_id","lastplayed":datetime.datetime(), fullpath: ""} or throw a NoMatchingSongError."""
+        """Put the song-choosing algorithm here. Expected to return something of the form
+        {id:"song_id","lastplayed":datetime.datetime(), fullpath: ""} or throw a NoMatchingSongError."""
         pass
 
     @abstractmethod
     def configure(self,arguments):
-	"""If an authorized user says !configure in chat, an array containing the arguments will be passed to this function.
-	Use this instead of __init__ to pass in initial values.
-	"""
+        """If an authorized user says !configure in chat, an array containing the arguments will be passed to this function.
+        Use this instead of __init__ to pass in initial values.
+        """
         pass
 
     @classmethod
