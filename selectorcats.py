@@ -14,7 +14,7 @@ class selectorCat:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def get_next_song(self,category):
+    def get_next_song(self, category, songs):
         """Put the song-choosing algorithm here. Expected to return something of the form
         {id:"song_id","lastplayed":datetime.datetime(), fullpath: ""} or throw a NoMatchingSongError."""
         pass
@@ -36,15 +36,14 @@ class selectorCat:
 
 class defaultCat:
     """A selectorCat that chooses songs randomly, as long as they haven't been played recently. """
-    def __init__(self, musiccat):
-        self.songs = musiccat.songs
-        self.time_before_replay = musiccat.time_before_replay
-    def get_next_song(self, category):
+    def __init__(self, time_before_replay=datetime.timedelta(hours=6)):
+        self.time_before_replay = time_before_replay
+    def get_next_song(self, category, songs):
         """ Returns song info by random
 
-        Only picks songs inside a category, that haven't played within _time_before_replay
+        Only picks songs inside a category, that haven't played within self.time_before_replay
         """
-        songs_category = [song for song in self.songs.values() \
+        songs_category = [song for song in songs.values() \
                             if category in song["types"] \
                             and song["lastplayed"] < datetime.datetime.now() - self.time_before_replay]
         return random.choice(songs_category)
@@ -59,10 +58,10 @@ class defaultCat:
 
 class completelyRandomCat:
     """A selectorCat that chooses songs completely randomly. More of an example than anything, really."""
-    def __init__(self, musiccat):
-        self.songs = musiccat.songs
-    def get_next_song(self, category):
-        songs_category = [song for song in self.songs.values() \
+    def __init__(self):
+        pass
+    def get_next_song(self, category, songs):
+        songs_category = [song for song in songs.values() \
                             if category in song["types"] ]
         return random.choice(songs_category)
     def configure(self, arguments):
@@ -70,10 +69,10 @@ class completelyRandomCat:
 
 class specificGameCat:
     """Only pick songs from a specific game. Use !configure to add games to this list."""
-    def __init__(self, musiccat):
+    def __init__(self):
         self.gameids = []
-    def get_next_song(self, category):
-        songs_category = [song for song in self.songs.values() \
+    def get_next_song(self, category, songs):
+        songs_category = [song for song in songs.values() \
                             if category in song["types"] \
                             and song["game"]["id"] in self.gameids]
         if len(songs_category) > 0:
@@ -104,12 +103,18 @@ class specificGameCat:
 class Catamari:
     """Example selectorCat that only plays one particular song.
     ♫ ┌༼ຈل͜ຈ༽┘ ♪ KATAMARI DO YOUR BEST ♪ └༼ຈل͜ຈ༽┐ ♫"""
-    def __init__(self, musiccat):
-        self.song = musiccat.song_info.find_one({"_id":"katamari_on_the_rocks"})
-    def get_next_song(self, category):
-        if(category == "betting"):
+    def __init__(self):
+        self.targetid="katamari_on_the_rocks"
+
+    def get_next_song(self, category, songs):
+        if self.song == None:
+            if self.targetid in songs.values():
+                self.song = songs["katamari_on_the_rocks"]
+
+        if(category == "betting") and (self.song==None):
           return self.song
         else:
           raise NoMatchingSongError(category)
+
     def configure(self, arguments):
         pass

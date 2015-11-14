@@ -74,8 +74,8 @@ class MusicCat(object):
         self.last_song = None
 
         #After self.load_metadata() is called, initialize the selectorcats from the class
-        self.selectorcat = default_selectorcat_class(self)
-        self.default_selectorcat = default_selectorcat_class(self)
+        self.selectorcat = default_selectorcat_class()
+        self.default_selectorcat = default_selectorcat_class()
         
         # Initialize WinAmp and insert addl. function
         self.winamp_path = winamp_path
@@ -201,7 +201,7 @@ class MusicCat(object):
         else:
             #Otherwise, let the selectorCat decide a random song for this category.
             try:
-                nextsong = self.selectorcat.get_next_song(category)
+                nextsong = self.selectorcat.get_next_song(category, self.songs)
             except selectorcats.NoMatchingSongError: 
                 #If there isn't a song that matches (such as a game with no warning music) use the default selectorCat
                 nextsong = self.default_selectorcat.get_next_song(category)
