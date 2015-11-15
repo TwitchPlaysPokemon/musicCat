@@ -53,9 +53,8 @@ class InsufficientBidError(ValueError):
 
 class MusicCat(object):
     _categories = ["betting", "warning", "battle", "result", "break"]
-    def __init__(self, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_selectorcat_class):
-        self.client = MongoClient(mongo_uri)
-        self.songdb = self.client.pbr_database
+    def __init__(self, songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_selectorcat_class):
+        self.songdb = self.songdb
         self.rootpath = root_path
         self.time_before_replay = time_before_replay
         self.minimum_autocorrect_ratio = minimum_autocorrect_ratio
@@ -314,12 +313,15 @@ if __name__ == "__main__":
     winamp_path = "C:/Program Files (x86)/Winamp/winamp.exe"
     mongo_uri = "mongodb://abylls-server:27017"
     # move these to the config file please
+
+    client = MongoClient(mongo_uri)
+    songdb = client.pbr_database
     time_before_replay = datetime.timedelta(hours=6)
     minimum_match_ratio = 0.75
     minimum_autocorrect_ratio = 0.92
     base_volume = 150
     default_selectorcat_class = selectorcats.defaultCat
-    library = MusicCat(root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume, default_selectorcat_class)
+    library = MusicCat(root_path, songdb, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume, default_selectorcat_class)
     while True:
         try:
             category = input("Enter category: ")
