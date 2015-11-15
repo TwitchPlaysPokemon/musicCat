@@ -52,7 +52,7 @@ class InsufficientBidError(ValueError):
         self.current_bid = current_bid
 
 class MusicCat(object):
-    _categories = ["betting", "warning", "battle", "result"]
+    _categories = ["betting", "warning", "battle", "result", "break"]
     def __init__(self, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_selectorcat_class):
         self.client = MongoClient(mongo_uri)
         self.songdb = self.client.pbr_database
@@ -309,9 +309,11 @@ class MusicCat(object):
  
 if __name__ == "__main__":
     import sys
+    # move these to the config file please
     root_path = "D:\Projects\TPPRB Music" #Change these to your own local settings if you want to test.
     winamp_path = "C:/Program Files (x86)/Winamp/winamp.exe"
     mongo_uri = "mongodb://abylls-server:27017"
+    # move these to the config file please
     time_before_replay = datetime.timedelta(hours=6)
     minimum_match_ratio = 0.75
     minimum_autocorrect_ratio = 0.92
