@@ -7,7 +7,7 @@ except: # Temporary hack until the builtins future module is properly installed
     input = raw_input
 
 import os, random, datetime, subprocess
-import yaml
+import pyyaml
 import winamp
 import selectorcats
 import Levenshtein
