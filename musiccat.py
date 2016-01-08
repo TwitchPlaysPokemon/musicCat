@@ -1,4 +1,6 @@
 # TPPRB MusicCat Song Library v2.3
+# Dependencies: pyyaml, Levenshtein, pymongo
+# Please install all with pip3
  
 from __future__ import print_function
 try:
@@ -6,16 +8,20 @@ try:
 except: # Temporary hack until the builtins future module is properly installed
     input = raw_input
 
-import os, random, datetime, subprocess
-import pyyaml
-import winamp
-import selectorcats
+#pip3 dependencies
 import Levenshtein
+import yaml
 from pymongo import MongoClient
+
+#standard modules
+import os, random, datetime, subprocess
 from bson import CodecOptions, SON
 
 #TPP modules
 #import tokens, chat
+
+import winamp
+import selectorcats
 
 """
 Expected db formats:
