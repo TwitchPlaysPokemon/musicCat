@@ -1,4 +1,4 @@
-# TPPRB MusicCat Song Library v2.3
+# TPPBR MusicCat Song Library v2.3
 # Dependencies: pyyaml, Levenshtein, pymongo
 # Please install all with pip3
  
