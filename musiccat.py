@@ -61,7 +61,7 @@ class InsufficientBidError(ValueError):
 
 class MusicCat(object):
     _categories = ["betting", "warning", "battle", "result", "break"]
-    def __init__(self, songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_selectorcat_class):
+    def __init__(self, songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_song_volume, default_selectorcat_class):
         self.songdb = songdb
         self.rootpath = root_path
         self.time_before_replay = time_before_replay
@@ -77,6 +77,7 @@ class MusicCat(object):
 
         self.base_volume = base_volume
         self.current_song_volume = 1.0 #will be overridden when it's time to play a song
+        self.default_song_volume = default_song_volume #will be used if a song has no volume
         
         self.current_category = MusicCat._categories[0]
         self.current_song = None
@@ -151,7 +152,7 @@ class MusicCat(object):
                 
                 #queue an operation to update self.song_info
                 if self.song_info:
-                    bulkOperation.find({'_id': song["id"]}).upsert().update({'$setOnInsert':{'volumeMultiplier':1}})
+                    bulkOperation.find({'_id': song["id"]}).upsert().update({'$setOnInsert':{'volumeMultiplier':self.default_song_volume}})
 
                 newsongs[song["id"]] = song
 
@@ -226,7 +227,9 @@ class MusicCat(object):
                 self.current_song_volume = matchingSong.volume_multiplier
                 self.update_winamp_volume()
             else:
-                raise StandardError("Volume for Song ID {} not found!".format(nextsong["id"]))
+                #Volume data should be fed into the database when the metadata files are loaded, but just in case
+                self.log.warn("Volume for Song ID {} not found!".format(nextsong["id"]))
+                self.current_song_volume = default_song_volume
        
         # And start the song.
         self.current_category = category
@@ -342,9 +345,11 @@ if __name__ == "__main__":
     except:
         raise FileNotFoundError("config.yml not found!")
     
-    root_path = config["root_path"]
+    root_path = config["root_path"] #path to metadata files
     winamp_path = config["winamp_path"]
     mongo_uri = config["mongo_uri"]
+    base_volume = config["master_winamp_volume"]
+    default_song_volume = config["default_song_volume"]
     debug_enabled = config["debug"]
 
     client = MongoClient(mongo_uri)
@@ -352,9 +357,8 @@ if __name__ == "__main__":
     time_before_replay = datetime.timedelta(hours=6)
     minimum_match_ratio = 0.75
     minimum_autocorrect_ratio = 0.92
-    base_volume = 150
     default_selectorcat_class = selectorcats.defaultCat
-    library = MusicCat(songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume, default_selectorcat_class)
+    library = MusicCat(songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_song_volume,default_selectorcat_class)
     while True:
         try:
             category = input("Enter category: ")
