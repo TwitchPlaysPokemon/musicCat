@@ -67,9 +67,7 @@ class MusicCat(object):
         self.time_before_replay = time_before_replay
         self.minimum_autocorrect_ratio = minimum_autocorrect_ratio
         self.minimum_match_ratio = minimum_match_ratio
-        self.song_ratings = self.songdb["pbr_ratings"]
-        
-            #.with_options(codec_options=CodecOptions(document_class=SON))
+        self.song_ratings = self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
         self.song_info = self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
         self.bid_queue = {} # Bidding queue, for each category: {category: {song: songid, username: name, bid: amount}}
 
@@ -286,7 +284,7 @@ class MusicCat(object):
             raise InsufficientBidError(bid, current_bid["tokens"])
         else:
             self.bid_queue[category] = {"username": user.username, "song":song["id"], "tokens": tokens}
-    
+            
     def rate_command(self, user, args):
         """Store an user's rating in the database, parsing the command.
         user: a string
@@ -329,11 +327,18 @@ class MusicCat(object):
  
 if __name__ == "__main__":
     import sys
-    # move these to the config file please
-    root_path = "D:\Projects\TPPRB Music" #Change these to your own local settings if you want to test.
-    winamp_path = "C:/Program Files (x86)/Winamp/winamp.exe"
-    mongo_uri = "mongodb://abylls-server:27017"
-    # move these to the config file please
+    
+    #Load config from config file
+    config_filename = "config.yml"
+    try:
+        config = yaml.load(open(config_filename))
+    except:
+        raise FileNotFoundError("config.yml not found!")
+    
+    root_path = config["root_path"]
+    winamp_path = config["winamp_path"]
+    mongo_uri = config["mongo_uri"]
+    debug_enabled = config["debug"]
 
     client = MongoClient(mongo_uri)
     songdb = client.pbr_database

@@ -1,0 +1,4 @@
+root_path: D:\Projects\TPPRB Music
+winamp_path: "C:/Program Files (x86)/Winamp/winamp.exe"
+mongo_uri: "mongodb://abylls-server:27017"
+debug: false
