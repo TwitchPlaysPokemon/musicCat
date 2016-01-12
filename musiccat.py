@@ -16,7 +16,7 @@ import yaml
 from pymongo import MongoClient
 
 #standard modules
-import os, random, datetime, subprocess
+import os, random, datetime, subprocess, logging
 from bson import CodecOptions, SON
 
 #TPP modules
@@ -70,6 +70,8 @@ class MusicCat(object):
         self.song_ratings = self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
         self.song_info = self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
         self.bid_queue = {} # Bidding queue, for each category: {category: {song: songid, username: name, bid: amount}}
+        
+        self.log = logging.getLogger("musicCat")
 
         self.load_metadata(root_path)
 
@@ -230,6 +232,7 @@ class MusicCat(object):
         self.current_category = category
         self.current_song = nextsong
         self.play_file(nextsong["fullpath"])
+        self.log.info("Now playing {}".format(nextsong))
         return nextsong # Return the song for display purposes
 
     def bid_command(self, userdata, args):
@@ -284,6 +287,8 @@ class MusicCat(object):
             raise InsufficientBidError(bid, current_bid["tokens"])
         else:
             self.bid_queue[category] = {"username": user.username, "song":song["id"], "tokens": tokens}
+            self.log.info("{} placed bid of {} for {}".format(user.username,tokens,song["id"]))
+    
             
     def rate_command(self, user, args):
         """Store an user's rating in the database, parsing the command.
@@ -298,6 +303,7 @@ class MusicCat(object):
         if type(rating) != int or rating < 0 or rating >= 5:
             raise ValueError("Rating must be between 0 and 5.")
         self.song_ratings.find_one_and_update({"username": user.username, "songid": songid}, {"username": user.username, "songid": songid, "rating": rating}, upsert=True)
+        self.log.info("{} rated songid {} with a rating of {}".format(user.username,songid,rating))
 
     def set_base_volume(self, basevolume):
         """Set the base volume for winamp"""
@@ -314,6 +320,7 @@ class MusicCat(object):
         elif songid == currentsongid:
             self.current_song_volume = volume
             self.update_winamp_volume()
+            self.log.info("Set volumeMultiplier for {} to {}".format(songid,volume))
 
     def update_winamp_volume(self):
         """Update winamp's volume from self.base_volume and the song's volumeMultiplier"""
