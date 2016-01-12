@@ -1,5 +1,5 @@
 # TPPBR MusicCat Song Library v2.3
-# Dependencies: pyyaml, python-Levenshtein, pymongo
+# Dependencies: pyyaml, python-Levenshtein, pymongo, pypiwin32
 # Please install all with pip3
 
 # (note: if installing python-Levenshtein complains about vcvarsall.bat, see http://stackoverflow.com/a/33163704)
@@ -62,12 +62,14 @@ class InsufficientBidError(ValueError):
 class MusicCat(object):
     _categories = ["betting", "warning", "battle", "result", "break"]
     def __init__(self, songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_selectorcat_class):
-        self.songdb = self.songdb
+        self.songdb = songdb
         self.rootpath = root_path
         self.time_before_replay = time_before_replay
         self.minimum_autocorrect_ratio = minimum_autocorrect_ratio
         self.minimum_match_ratio = minimum_match_ratio
-        self.song_ratings =  self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
+        self.song_ratings = self.songdb["pbr_ratings"]
+        
+            #.with_options(codec_options=CodecOptions(document_class=SON))
         self.song_info = self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
         self.bid_queue = {} # Bidding queue, for each category: {category: {song: songid, username: name, bid: amount}}
 
@@ -112,7 +114,7 @@ class MusicCat(object):
     
      - id: gameid
        title:
-	   series: 
+       series: 
        year:
        platform:
        path: # No longer used
@@ -233,13 +235,13 @@ class MusicCat(object):
         return nextsong # Return the song for display purposes
 
     def bid_command(self, userdata, args):
-	    """Handle a bid command
-		userdata: a dict containing {username: String}
-		args: A string: "songid tokens" separated by a space. 
-		Will throw a ValueError, InvalidCategoryError, or 
-		  InsufficientBidError (from the self.bid() call)
-		"""
-        user = userdata.username
+        """Handle a bid command
+        userdata: a dict containing {username: String}
+        args: A string: "songid tokens" separated by a space. 
+        Will throw a ValueError, InvalidCategoryError, or 
+        InsufficientBidError (from the self.bid() call)
+        """
+        user = userdata["username"]
         songid, tokens = args.split(" ")
         try:
             tokens = int(tokens)
@@ -288,9 +290,9 @@ class MusicCat(object):
     def rate_command(self, user, args):
         """Store an user's rating in the database, parsing the command.
         user: a string
-		args: A string: "<songid> <rating>" separated by a space. """
+        args: A string: "<songid> <rating>" separated by a space. """
         songid, rating = args.split(" ")
-        self.rate(user, songid, rating)	#error checking is all done in here
+        self.rate(user, songid, rating)    #error checking is all done in here
     
     def rate(self, user, songid, rating):
         """ Set a user's rating of a given song"""
@@ -340,7 +342,7 @@ if __name__ == "__main__":
     minimum_autocorrect_ratio = 0.92
     base_volume = 150
     default_selectorcat_class = selectorcats.defaultCat
-    library = MusicCat(root_path, songdb, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume, default_selectorcat_class)
+    library = MusicCat(songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path,base_volume, default_selectorcat_class)
     while True:
         try:
             category = input("Enter category: ")
