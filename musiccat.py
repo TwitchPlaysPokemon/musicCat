@@ -1,6 +1,8 @@
 # TPPBR MusicCat Song Library v2.3
 # Dependencies: pyyaml, python-Levenshtein, pymongo
 # Please install all with pip3
+
+# (note: if installing python-Levenshtein complains about vcvarsall.bat, see http://stackoverflow.com/a/33163704)
  
 from __future__ import print_function
 try:
@@ -110,6 +112,7 @@ class MusicCat(object):
     
      - id: gameid
        title:
+	   series: 
        year:
        platform:
        path: # No longer used
@@ -122,6 +125,7 @@ class MusicCat(object):
     """
     
     def import_metadata(self, metafilename):
+        """Import metadata given a metadata filename"""
         with open(metafilename) as metafile:
             newdata = yaml.load(metafile)
         path = os.path.dirname(metafilename)
@@ -229,6 +233,12 @@ class MusicCat(object):
         return nextsong # Return the song for display purposes
 
     def bid_command(self, userdata, args):
+	    """Handle a bid command
+		userdata: a dict containing {username: String}
+		args: A string: "songid tokens" separated by a space. 
+		Will throw a ValueError, InvalidCategoryError, or 
+		  InsufficientBidError (from the self.bid() call)
+		"""
         user = userdata.username
         songid, tokens = args.split(" ")
         try:
@@ -276,6 +286,9 @@ class MusicCat(object):
             self.bid_queue[category] = {"username": user.username, "song":song["id"], "tokens": tokens}
     
     def rate_command(self, user, args):
+        """Store an user's rating in the database, parsing the command.
+        user: a string
+		args: A string: "<songid> <rating>" separated by a space. """
         songid, rating = args.split(" ")
         self.rate(user, songid, rating)	#error checking is all done in here
     
@@ -287,7 +300,7 @@ class MusicCat(object):
         self.song_ratings.find_one_and_update({"username": user.username, "songid": songid}, {"username": user.username, "songid": songid, "rating": rating}, upsert=True)
 
     def set_base_volume(self, basevolume):
-        """set the base volume for winamp"""
+        """Set the base volume for winamp"""
         self.base_volume = basevolume
         self.update_winamp_volume()
 
@@ -303,7 +316,7 @@ class MusicCat(object):
             self.update_winamp_volume()
 
     def update_winamp_volume(self):
-        """update winamp's volume from self.base_volume and the song's volumeMultiplier"""
+        """Update winamp's volume from self.base_volume and the song's volumeMultiplier"""
         winamp_volume = int(self.base_volume * self.current_song_volume)
         winamp_volume = min(max(winamp_volume,0),255)#clamp to 0-255
         self.winamp.setVolume(winamp_volume)
