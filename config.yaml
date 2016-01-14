@@ -4,3 +4,4 @@ mongo_uri: "mongodb://abylls-server:27017"
 master_winamp_volume: 150
 default_song_volume: 1.0
 debug: false
+no_bidding_on_warning: true

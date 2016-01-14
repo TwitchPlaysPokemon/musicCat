@@ -61,7 +61,7 @@ class InsufficientBidError(ValueError):
 
 class MusicCat(object):
     _categories = ["betting", "warning", "battle", "result", "break"]
-    def __init__(self, songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_song_volume, default_selectorcat_class):
+    def __init__(self, songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_song_volume, default_selectorcat_class, no_bidding_on_warning):
         self.songdb = songdb
         self.rootpath = root_path
         self.time_before_replay = time_before_replay
@@ -78,6 +78,7 @@ class MusicCat(object):
         self.base_volume = base_volume
         self.current_song_volume = 1.0 #will be overridden when it's time to play a song
         self.default_song_volume = default_song_volume #will be used if a song has no volume
+        self.no_bidding_on_warning = no_bidding_on_warning
         
         self.current_category = MusicCat._categories[0]
         self.current_song = None
@@ -256,7 +257,7 @@ class MusicCat(object):
 
 
         #if you bid during betting (when the next category is technically warning), treat the next category as battle
-        if nextcategory == "warning":
+        if not self.no_bidding_on_warning and (nextcategory == "warning"):
             nextcategory = "battle"
 
         category_is_ok = False
@@ -339,11 +340,11 @@ if __name__ == "__main__":
     import sys
     
     #Load config from config file
-    config_filename = "config.yml"
+    config_filename = "config.yaml"
     try:
         config = yaml.load(open(config_filename))
     except:
-        raise FileNotFoundError("config.yml not found!")
+        raise FileNotFoundError(config_filename + " not found!")
     
     root_path = config["root_path"] #path to metadata files
     winamp_path = config["winamp_path"]
@@ -351,6 +352,7 @@ if __name__ == "__main__":
     base_volume = config["master_winamp_volume"]
     default_song_volume = config["default_song_volume"]
     debug_enabled = config["debug"]
+    no_bidding_on_warning = config["no_bidding_on_warning"]
 
     client = MongoClient(mongo_uri)
     songdb = client.pbr_database
@@ -358,7 +360,7 @@ if __name__ == "__main__":
     minimum_match_ratio = 0.75
     minimum_autocorrect_ratio = 0.92
     default_selectorcat_class = selectorcats.defaultCat
-    library = MusicCat(songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_song_volume,default_selectorcat_class)
+    library = MusicCat(songdb, root_path, time_before_replay, minimum_match_ratio, minimum_autocorrect_ratio, mongo_uri, winamp_path, base_volume, default_song_volume,default_selectorcat_class, no_bidding_on_warning)
     while True:
         try:
             category = input("Enter category: ")
