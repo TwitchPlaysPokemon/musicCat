@@ -341,8 +341,9 @@ if __name__ == "__main__":
     
     #Load config from config file
     config_filename = "config.yaml"
+    full_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), config_filename)
     try:
-        config = yaml.load(open(config_filename))
+        config = yaml.load(open(full_config_path))
     except:
         raise FileNotFoundError(config_filename + " not found!")
     
