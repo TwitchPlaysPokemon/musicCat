@@ -73,8 +73,6 @@ class MusicCat(object):
         
         self.log = logging.getLogger("musicCat")
 
-        self.load_metadata(root_path)
-
         self.base_volume = base_volume
         self.current_song_volume = 1.0 #will be overridden when it's time to play a song
         self.default_song_volume = default_song_volume #will be used if a song has no volume
@@ -83,6 +81,8 @@ class MusicCat(object):
         self.current_category = MusicCat._categories[0]
         self.current_song = None
         self.last_song = None
+
+        self.load_metadata(root_path)
 
         #After self.load_metadata() is called, initialize the selectorcats from the class
         self.selectorcat = default_selectorcat_class()
@@ -129,33 +129,32 @@ class MusicCat(object):
     """
     
     def import_metadata(self, metafilename):
-        """Import metadata given a metadata filename"""
+        """Import metadata given a metadata filename. Assumed to be one game per metadata file."""
         with open(metafilename) as metafile:
-            newdata = yaml.load(metafile)
+            gamedata = yaml.load(metafile)
         path = os.path.dirname(metafilename)
         newsongs = {}
 
         if self.song_info:
             bulkOperation = self.song_info.initialize_unordered_bulk_op() #prepare to update self.song_info
 
-        for game in newdata:
-            gameid = game["id"]
-            system = game["platform"]
-            songs = game.pop("songs")
-            for song in songs:
-                if song["id"] in self.songs or song["id"] in newsongs:
-                    raise StandardError("Song {} already exists! Not importing {}".format(song["id"], metafilename))
-                song["fullpath"] = os.path.join(path, song["path"])
-                song["game"] = game
-                song["lastplayed"] = datetime.datetime.now() - self.time_before_replay
-                if "type" in song: # Convert single type to a stored list
-                    song["types"] = [song.pop("type")]
-                
-                #queue an operation to update self.song_info
-                if self.song_info:
-                    bulkOperation.find({'_id': song["id"]}).upsert().update({'$setOnInsert':{'volumeMultiplier':self.default_song_volume}})
+        gameid = gamedata["id"]
+        system = gamedata["platform"]
+        songs = gamedata.pop("songs")
+        for song in songs:
+            if song["id"] in self.songs or song["id"] in newsongs:
+                raise StandardError("Song {} already exists! Not importing {}".format(song["id"], metafilename))
+            song["fullpath"] = os.path.join(path, song["path"])
+            song["game"] = gamedata
+            song["lastplayed"] = datetime.datetime.now() - self.time_before_replay
+            if "type" in song: # Convert single type to a stored list
+                song["types"] = [song.pop("type")]
+            
+            #queue an operation to update self.song_info
+            if self.song_info:
+                bulkOperation.find({'_id': song["id"]}).upsert().update({'$setOnInsert':{'volumeMultiplier':self.default_song_volume}})
 
-                newsongs[song["id"]] = song
+            newsongs[song["id"]] = song
 
         #do all the updates at once
         if self.song_info:
