@@ -3,5 +3,8 @@ winamp_path: "C:/Program Files (x86)/Winamp/winamp.exe"
 mongo_uri: "mongodb://abylls-server:27017"
 master_winamp_volume: 150
 default_song_volume: 1.0
-debug: false
 no_bidding_on_warning: true
+min_fuzzymatch_warn_ratio: 0.75
+min_fuzzymatch_accept_ratio: 0.92
+default_time_before_replay_hrs: 6
+debug: false
