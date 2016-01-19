@@ -24,6 +24,7 @@ from bson import CodecOptions, SON
 
 import winamp
 import selectorcats
+import bidcat
 
 """
 Expected db formats:

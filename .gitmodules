@@ -1,0 +1,3 @@
+[submodule "bidcat"]
+	path = bidcat
+	url = https://github.com/twitchplayspokemon/bidcat
