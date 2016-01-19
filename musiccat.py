@@ -31,7 +31,7 @@ Expected db formats:
 pbr_ratings:
    {_id={username, songid}, rating:song rating, last_listened: datetime user last listened}
 pbr_songinfo:
-   {_id=songid, volumeMultiplier:volume multiplier}
+   {_id=songid, volume_multiplier:volume multiplier}
 """
 class BadMatchError(ValueError):
     """Raised when a song id matches to a song with poor confidence."""
@@ -39,11 +39,6 @@ class BadMatchError(ValueError):
         super(BadMatchError, self).__init__("{} not found. Closest match: {}".format(songid, match))
         self.songid = songid
         self.match = match
-        
-class BadConfigError(ValueError):
-    """Raised when a config file is missing a required element."""
-    def __init__(self):
-        super(ValueError, self).__init__()
 
 class NoMatchError(ValueError):
     """Raised when a song id fails to match a song with any confidence"""
@@ -102,9 +97,13 @@ class MusicCat(object):
         
         self.current_category = MusicCat._categories[0]
         self.current_song = None
-        self.last_song = None        
-        self.bid_queue = {} # Bidding queue, for each category: {category: {song: songid, username: name, bid: amount}}
+        self.last_song = None
         self.current_song_volume = 1.0 #will be overridden when it's time to play a song
+
+        self.bid_queue = {}
+  # Bidding queue, for each category: {category: {song: songid, username: name, bid: amount}}
+        for category in MusicCat._categories:
+                bid_queue[category] = bidcat.Auction()
 
         self.load_metadata(self.root_path)
 
@@ -175,7 +174,7 @@ class MusicCat(object):
             
             #queue an operation to update self.song_info
             if self.song_info:
-                bulkOperation.find({'_id': song["id"]}).upsert().update({'$setOnInsert':{'volumeMultiplier':self.default_song_volume}})
+                bulkOperation.find({'_id': song["id"]}).upsert().update({'$setOnInsert':{'volume_multiplier':self.default_song_volume}})
 
             newsongs[song["id"]] = song
 
@@ -247,7 +246,7 @@ class MusicCat(object):
             matching_song = self.song_info.find_one({"_id":nextsong["id"]})
             if matching_song:
                 #assuming that we only want the first match anyways
-                #self.current_song_volume = matching_song.volumeMultiplier
+                self.current_song_volume = matching_song.volume_multiplier
                 self.update_winamp_volume()
             else:
                 #Volume data should be fed into the database when the metadata files are loaded, but just in case
@@ -340,16 +339,16 @@ class MusicCat(object):
         """Update the database with the volume for the given song."""
         if (volume < 0.0) or (volume > 2.0):
             raise ValueError("Volume multiplier must be between 0 and 2.")
-        updatedSong = self.song_info.update({'_id': songid},{'_id': songid,"volumeMultiplier":volume})
+        updatedSong = self.song_info.update({'_id': songid},{'_id': songid,"volume_multiplier":volume})
         if updatedSong == None:
             raise StandardError("Song ID {} not found!".format(songid))
         elif songid == currentsongid:
             self.current_song_volume = volume
             self.update_winamp_volume()
-            self.log.info("Set volumeMultiplier for {} to {}".format(songid,volume))
+            self.log.info("Set volume_multiplier for {} to {}".format(songid,volume))
 
     def update_winamp_volume(self):
-        """Update winamp's volume from self.base_volume and the song's volumeMultiplier"""
+        """Update winamp's volume from self.base_volume and the song's volume_multiplier"""
         winamp_volume = int(self.base_volume * self.current_song_volume)
         winamp_volume = min(max(winamp_volume,0),255)#clamp to 0-255
         self.winamp.setVolume(winamp_volume)
