@@ -69,6 +69,7 @@ class TesterMime(object):
             Choice(5, "Config", subMenu=Menu("Config", config_menu)),
             Choice(6, "Import pack", handler=t(musiccat.import_metadata), subMenu=DataMenu("Import", "Enter metadata file path: ", validate_path)),
             Choice(7, "Debug", handler=t(self.debug_output), subMenu=DataMenu("Debug", "Enter statement: ")),
+            Choice(8, "Change selectorcat", handler=t(musiccat.change_selectorcat), subMenu=DataMenu("Change selectorcat", "Enter new selectorcat name to use:")),
             Choice(0, "Exit", handler=lambda : False)
             ]
 

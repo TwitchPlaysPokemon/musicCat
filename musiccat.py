@@ -51,7 +51,7 @@ class BadMatchError(ValueError):
 class NoMatchError(ValueError):
     """Raised when a song id fails to match a song with any confidence"""
     def __init__(self, songid):
-        super(BadMatchError, self).__init__("{} not found.".format(songid))
+        super(NoMatchError, self).__init__("{} not found.".format(songid))
         self.songid = songid
 
 
@@ -114,8 +114,8 @@ class MusicCat(object):
 
         self.bid_queue = {}
         # Bidding queue, for each category: {category: {song: songid, username: name, bid: amount}}
-        for category in MusicCat._categories:
-                bid_queue[category] = bidcat.Auction()
+        #for category in MusicCat._categories:
+        #        bid_queue[category] = bidcat.Auction()
 
         self.load_metadata(self.root_path)
 
@@ -354,6 +354,22 @@ class MusicCat(object):
             self.current_song_volume = volume
             self.update_winamp_volume()
             self.log.info("Set volume_multiplier for {} to {}".format(songid, volume))
+
+    def change_selectorcat(self,new_selectorcat_name):
+        """Change the current selectorcat in use, given a string of a class name.
+    Use this for live reloading, so "_changeselector Catamari" could call this.
+    May raise a KeyError if the selectorcat name is invalid or nonexistent.
+    """
+        try:
+            newclass = getattr(selectorcats,new_selectorcat_name)
+        except AttributeError as e:
+            raise KeyError("No selectorcat named {} found; aborting change".format(new_selectorcat_name)) from e
+        #ensure the found class is actually a SelectorCat
+        if issubclass(newclass,selectorcats.SelectorCat):
+            self.selectorcat = newclass()
+            self.log.info("Changed selectorcat to {}".format(new_selectorcat_name))
+        else:
+            raise KeyError("The given name exists, but isn't a valid selectorcat!")
 
     def update_winamp_volume(self):
         """Update winamp's volume from self.base_volume and the song's volume_multiplier"""
