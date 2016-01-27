@@ -97,7 +97,7 @@ class MusicCat(object):
         except ValueError as e:
             raise ValueError("Unable to parse a number from config file") from e
 
-        default_selectorcat_class = selectorcats.defaultCat
+        default_selectorcat_class = selectorcats.DefaultCat
 
         mongo_uri = config["mongo_uri"]
         client = MongoClient(mongo_uri)

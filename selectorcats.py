@@ -7,11 +7,10 @@ class NoMatchingSongError(ValueError):
     def __init__(self, category):
         super(NoMatchingSongError, self).__init__("{} not found.".format(category))
 
-class selectorCat:
+class SelectorCat(metaclass=ABCMeta):
     """A class that implements some form of song selection.
 
     SelectorCats without properly punny class names are not allowed and are to be told that they have been very bad kitties."""
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_next_song(self, category, songs):
@@ -29,12 +28,12 @@ class selectorCat:
     @classmethod
     def __subclasshook__(cls,C):
         """Enable issubclass() to work for any class that implements configure() and get_next_song()"""
-        if cls is selectorCat:
+        if cls is SelectorCat:
             if any("configure" in B.__dict__ for B in C.__mro__) and any("get_next_song" in B.__dict__ for B in C.__mro__):
-                    return True
+                return True
         return NotImplemented
 
-class defaultCat:
+class DefaultCat:
     """A selectorCat that chooses songs randomly, as long as they haven't been played recently. """
     def __init__(self, time_before_replay=datetime.timedelta(hours=6)):
         self.time_before_replay = time_before_replay
@@ -56,7 +55,7 @@ class defaultCat:
             else:
                 raise ValueError("Unable to parse provided delay.")
 
-class completelyRandomCat:
+class CompletelyRandomCat:
     """A selectorCat that chooses songs completely randomly. More of an example than anything, really."""
     def __init__(self):
         pass
@@ -67,7 +66,7 @@ class completelyRandomCat:
     def configure(self, arguments):
         pass
 
-class specificGameCat:
+class SpecificGameCat:
     """Only pick songs from a specific game. Use !configure to add games to this list."""
     def __init__(self):
         self.gameids = []
