@@ -240,7 +240,7 @@ class MusicCat(object):
         """
         if category in self.bid_queue and use_bid:
             queued = self.bid_queue.pop(category)
-            nextsong = queued["song"]
+            nextsong = self.songs[queued["song"]]
             # Charge the user their bid
             tokens.adjust_tokens(queued["username"], -queued["tokens"])
         else:
