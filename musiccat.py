@@ -62,9 +62,26 @@ class InvalidCategoryError(ValueError):
         self.songid = songid
         self.category = category
 
+class SongPlayedRecentlyError(ValueError):
+    """Raised when a song cannot be bidded on because it has been played too recently"""
+    def __init__(self, songid, minutes_remaining):
+        super(SongPlayedRecentlyError, self).__init__("That song has been played too recently; try again in {} minutes".format(minutes_remaining))
+        self.songid = songid
+        self.minutes_remaining = minutes_remaining
+
+class SeriesPlayedRecentlyError(ValueError):
+    """Raised when a song cannot be bidded on because songs from the 
+    same series and category have been played too recently"""
+    def __init__(self, songid, series, category, minutes_remaining):
+        super(SeriesPlayedRecentlyError, self).__init__("{}-type songs from the {} series cannot be bidded on for another {} minutes. ".format(category.title(), series, minutes_remaining))
+        self.songid = songid
+        self.series = series
+        self.category = category
+        self.minutes_remaining = minutes_remaining
+
 
 class InsufficientBidError(ValueError):
-    """Raised when a user's bid fails to beat an existing bid"""
+    """Raised when an user's bid fails to beat an existing bid"""
     def __init__(self, bid, current_bid):
         super(InsufficientBidError, self).__init__("{} does not beat {}".format(bid, current_bid))
         self.bid = bid
@@ -104,6 +121,8 @@ class MusicCat(object):
         self.songdb = client.pbr_database
         self.song_ratings = self.songdb["pbr_ratings"].with_options(codec_options=CodecOptions(document_class=SON))
         self.song_info = self.songdb["pbr_songinfo"].with_options(codec_options=CodecOptions(document_class=SON))
+        
+        self.series_last_played_info = self.songdb["pbr_seriesdelayinfo"].with_options(codec_options=CodecOptions(document_class=SON))
 
         self.log = logging.getLogger("musicCat")
 
@@ -185,9 +204,25 @@ class MusicCat(object):
 
             # queue an operation to update self.song_info
             if self.song_info:
-                bulkOperation.find({'_id': song["id"]}).upsert().update({'$setOnInsert': {'volume_multiplier': self.default_song_volume}})
+                bulkOperation.find_one_and_update(
+                    {'_id': song["id"]},
+                    {'$setOnInsert': {'volume_multiplier': self.default_song_volume}},
+                    upsert=True)
 
             newsongs[song["id"]] = song
+
+        #update series delay database
+        if "series" in gamedata:
+            curr_time = datetime.datetime.now() - self.time_before_replay
+            last_played = {}
+            for category in MusicCat._categories:
+                last_played[category] = curr_time
+
+            self.series_last_played_info.find_one_and_update(
+                {'_id': gamedata["series"]},
+		{'$setOnInsert': new_object},
+		upsert=True)
+
 
         # do all the updates at once
         if self.song_info:
@@ -199,9 +234,9 @@ class MusicCat(object):
     def next_category(self):
         """Returns the category that follows the currently-playing category"""
         next_ind = MusicCat._categories.index(self.current_category) + 1
-        if next_ind == len(_categories):
+        if next_ind == len(MusicCat._categories):
             next_ind = 0
-        return _categories[next_ind]
+        return MusicCat._categories[next_ind]
 
     def find_song_info(self, songid):
         """ Fuzzy-match songid to either song id, or full id (game-song)
@@ -235,7 +270,7 @@ class MusicCat(object):
         """ Automatically play next song from bid queue, or randomly
 
         If a song was queued from a bid, play that (and remove from bid_queue)
-        Otherwise, pick a song randomly for the given category.
+        Otherwise, let the selectorCat pick a song for the given category.
         Returns the info for the played song, for display status purposes.
         """
         if category in self.bid_queue and use_bid:
@@ -249,6 +284,7 @@ class MusicCat(object):
                 nextsong = self.selectorcat.get_next_song(category, self.songs)
             except selectorcats.NoMatchingSongError:
                 # If there isn't a song that matches (such as a game with no warning music) use the default selectorCat
+                # It is assumed that the default selectorcat won't fail to pick a song.
                 nextsong = self.default_selectorcat.get_next_song(category)
         # Update lastplayed timestamp
         nextsong["lastplayed"] = datetime.datetime.now()
@@ -259,6 +295,9 @@ class MusicCat(object):
                 # assuming that we only want the first match anyways
                 self.current_song_volume = matching_song.volume_multiplier
                 self.update_winamp_volume()
+                
+                if matching_song.series:
+                    self.series_last_played_info.update({category : datetime.datetime.now()})
             else:
                 # Volume data should be fed into the database when the metadata files are loaded, but just in case
                 self.log.warn("Volume for Song ID {} not found!".format(nextsong["id"]))
@@ -275,7 +314,8 @@ class MusicCat(object):
         """Handle a bid command
         userdata: a dict containing {username: String}
         args: A string: "songid tokens" separated by a space.
-        May throw a ValueError, InvalidCategoryError, or InsufficientBidError (from the self.bid() call)
+        May throw a ValueError, InvalidCategoryError, or InsufficientBidError (from the self.bid() call).
+        If the song or series has been played recently, may raise a SongPlayedRecentlyError or a SeriesPlayedRecentlyError.
         """
         user = userdata["username"]
         songid, tokens = args.split(" ")
@@ -302,16 +342,32 @@ class MusicCat(object):
     def bid(self, user, songid, tokens, category=None):
         """Attempt to place bid to queue song, for a user
 
-        Tokens is assumed validated by the caller
-        Songid might be invalid; will attempt fuzzy match
-        Song must be in the upcoming category
-        bid() will raise an error if bid fails, or song is invalid.
+        Tokens is assumed validated by the caller.
+        Songid might be invalid; This will attempt a fuzzy match and raise BadMatchError or NoMatchError.
+        May also raise a SongPlayedRecentlyError or a SeriesPlayedRecentlyError.
         """
         song = self.find_song_info(songid)
-        if category not in song["types"]:
-            raise InvalidCategoryError(songid, category)
+
         if category is None:  # Default to the first type in the song's list.
             category = song["types"][0]
+
+        if category not in song["types"]:
+            raise InvalidCategoryError(songid, category)
+        
+        #Ensure the song hasn't been played recently
+        if song["lastplayed"] >= datetime.datetime.now() - self.time_before_replay:
+            minutes_remaining = ((song["lastplayed"] - datetime.datetime.now() - self.time_before_replay).seconds )/60
+            raise SongPlayedRecentlyError(songid, int(minutes_remaining))
+
+        #If a song from the same series has been played recently, disallow it
+        #if self.series_delay_enabled:
+            #last_played = self.series_last_played_info.find_one({"_id":song["game"]["series"]})
+            #if (last_played) and (last_played >= datetime.datetime.now() - self.time_before_series_replay):
+                #minutes_remaining = ((last_played  - datetime.datetime.now() - self.time_before_replay).seconds )/60
+                #raise SeriesPlayedRecentlyError(songid, category,
+
+
+        #bidding logic; todo: replace with bidCat
         current_bid = self.queue.get(category, None)
         if current_bid is None:  # autowin!
             self._set_bid(user, song, tokens)
