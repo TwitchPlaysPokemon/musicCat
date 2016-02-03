@@ -358,7 +358,7 @@ class MusicCat(object):
         
         #Ensure the song hasn't been played recently
         if song["lastplayed"] >= datetime.datetime.now() - self.time_before_replay:
-            minutes_remaining = ((song["lastplayed"] - datetime.datetime.now() - self.time_before_replay).seconds )/60
+            minutes_remaining = ((song["lastplayed"] - (datetime.datetime.now() - self.time_before_replay)).seconds)/60
             raise SongPlayedRecentlyError(songid, int(minutes_remaining))
 
         #If a song from the same series has been played recently, disallow it
