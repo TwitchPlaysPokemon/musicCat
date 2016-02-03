@@ -105,8 +105,14 @@ class MusicCat(object):
             self.debug_enabled = config["debug"]
             self.allow_bidding_on_future_categories = config["allow_bidding_on_future_categories"]
             self.no_bidding_on_warning = config["no_bidding_on_warning"]
+            
             hours = int(config["default_time_before_replay_hrs"]) # error here means value isn't a number; still means invalid config file
             self.time_before_replay = datetime.timedelta(hours=hours)
+            
+            self.series_delay_enabled = config["series_delay_enabled"]
+            hours = int(config["default_time_before_series_replay_hrs"])
+            self.time_before_series_replay = datetime.timedelta(hours=hours)
+            
             self.minimum_autocorrect_ratio = config["min_fuzzymatch_accept_ratio"]
             self.minimum_match_ratio = config["min_fuzzymatch_warn_ratio"]
             self.winamp_path = config["winamp_path"]
@@ -288,16 +294,20 @@ class MusicCat(object):
                 nextsong = self.default_selectorcat.get_next_song(category)
         # Update lastplayed timestamp
         nextsong["lastplayed"] = datetime.datetime.now()
-        # fetch volume
+        
+        # Update series last played timestamp
+        if "series" in nextsong["game"]:
+            print(nextsong["game"]["series"])
+            self.series_last_played_info.find_one_and_update({"_id": nextsong["game"]["series"]}, 
+                {"$set":{category : datetime.datetime.now()}})
+        
+        # fetch volume and update series last played information
         if self.song_info:
             matching_song = self.song_info.find_one({"_id": nextsong["id"]})
             if matching_song:
                 # assuming that we only want the first match anyways
                 self.current_song_volume = matching_song["volume_multiplier"]
                 self.update_winamp_volume()
-                
-                if "series" in matching_song:
-                    self.series_last_played_info.update({category : datetime.datetime.now()})
             else:
                 # Volume data should be fed into the database when the metadata files are loaded, but just in case
                 self.log.warn("Volume for Song ID {} not found!".format(nextsong["id"]))
@@ -362,11 +372,16 @@ class MusicCat(object):
             raise SongPlayedRecentlyError(songid, int(minutes_remaining))
 
         #If a song from the same series has been played recently, disallow it
-        #if self.series_delay_enabled:
-            #last_played = self.series_last_played_info.find_one({"_id":song["game"]["series"]})
-            #if (last_played) and (last_played >= datetime.datetime.now() - self.time_before_series_replay):
-                #minutes_remaining = ((last_played  - datetime.datetime.now() - self.time_before_replay).seconds )/60
-                #raise SeriesPlayedRecentlyError(songid, category,
+        if self.series_delay_enabled and "series" in song["game"]:
+            series = song["game"]["series"]
+            last_played = self.series_last_played_info.find_one({"_id": series})
+            if last_played:
+               if last_played[category] >= datetime.datetime.now() - self.time_before_series_replay:
+                    minutes_remaining = ((last_played[category] - (datetime.datetime.now() - self.time_before_replay)).seconds )/60
+                    raise SeriesPlayedRecentlyError(songid, series, category, int(minutes_remaining))
+        
+        elif "series" not in song["game"]:
+            self.log.warn("The game {} doesn't have a series tag!".format(song["game"]))
 
 
         #bidding logic; todo: replace with bidCat

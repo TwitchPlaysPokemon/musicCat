@@ -107,5 +107,6 @@ if __name__ == "__main__":
     library = MusicCat(config_filename)
     
     library.time_before_replay = datetime.timedelta(minutes=3)
+    library.time_before_series_replay = datetime.timedelta(minutes=3)
 
     TesterMime(library)

@@ -8,4 +8,6 @@ allow_bidding_on_future_categories: true
 min_fuzzymatch_warn_ratio: 0.75
 min_fuzzymatch_accept_ratio: 0.92
 default_time_before_replay_hrs: 6
+series_delay_enabled: true
+default_time_before_series_replay_hrs: 1
 debug: false
