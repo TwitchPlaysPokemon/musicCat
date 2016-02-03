@@ -46,9 +46,9 @@ class TesterMime(object):
         self.user = PBRUser("Abyll", 99)
         play_menu = [
             Choice(1, "Play Song ID", handler=t(nullfunc), subMenu=DataMenu("DISABLED", "Enter song id: ")),
-            Choice(2, "Play Next", handler=t(self.playnext)),
-            Choice(3, "Play Random", handler=t(self.playrandom)),
-            Choice(4, "Play Next Category", handler=t(self.playnextcat)),
+            Choice(2, "Play And Move To Next Category", handler=t(self.playnext)),
+            Choice(3, "Play Random From Current Category", handler=t(self.playrandom)),
+            Choice(4, "Play From Current Category", handler=t(self.playsamecat)),
             Choice(5, "Set Category", handler=self.set_category, subMenu=DataMenu("Category", "Enter category: ", valid=lambda cat: cat if cat in MusicCat._categories else None)),
             Choice(0, "Cancel", handler=lambda : False)
             ]
@@ -78,6 +78,7 @@ class TesterMime(object):
     
     def set_category(self, cat):
         self.cat = cat
+        self.musiccat.current_category = cat
     
     def do_rate(self, args):
         self.musiccat.rate_command(self.user, args)
@@ -85,16 +86,16 @@ class TesterMime(object):
     def do_bid(self, args):
         self.musiccat.bid_command(self.user, args)
     
-    def playnextcat(self):
-        val = self.musiccat.play_next_song()
-        self.category = self.musiccat.current_category
+    def playnext(self):
+        val = self.musiccat.play_next_song(self.cat)
+        self.cat = self.musiccat.next_category()
         return val
     
-    def playnext(self):
-        return self.musiccat.play_next_song(self.cat, use_bid=True)
+    def playsamecat(self):
+        return self.musiccat.play_next_song(self.cat, force_random=False)
     
     def playrandom(self):
-        return self.musiccat.play_next_song(self.cat, use_bid=False)
+        return self.musiccat.play_next_song(self.cat, force_random=True)
     
     def debug_output(self, *args):
         return [eval(arg) for arg in args]

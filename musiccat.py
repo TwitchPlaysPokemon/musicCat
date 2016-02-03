@@ -43,7 +43,7 @@ pbr_songinfo:
 class BadMatchError(ValueError):
     """Raised when a song id matches to a song with poor confidence."""
     def __init__(self, songid, match):
-        super(BadMatchError, self).__init__("{} not found. Closest match: {}".format(songid, match))
+        super(BadMatchError, self).__init__("Song ID {} not found. Closest match: {}".format(songid, match))
         self.songid = songid
         self.match = match
 
@@ -51,7 +51,7 @@ class BadMatchError(ValueError):
 class NoMatchError(ValueError):
     """Raised when a song id fails to match a song with any confidence"""
     def __init__(self, songid):
-        super(NoMatchError, self).__init__("{} not found.".format(songid))
+        super(NoMatchError, self).__init__("Song ID {} not found.".format(songid))
         self.songid = songid
 
 
@@ -103,6 +103,7 @@ class MusicCat(object):
             self.base_volume = config["master_winamp_volume"]
             self.default_song_volume = config["default_song_volume"] # will be used if a song has no volume
             self.debug_enabled = config["debug"]
+            self.allow_bidding_on_future_categories = config["allow_bidding_on_future_categories"]
             self.no_bidding_on_warning = config["no_bidding_on_warning"]
             hours = int(config["default_time_before_replay_hrs"]) # error here means value isn't a number; still means invalid config file
             self.time_before_replay = datetime.timedelta(hours=hours)
@@ -261,21 +262,22 @@ class MusicCat(object):
             elif best_ratio < self.minimum_match_ratio: # No match close enough to be reliable
                 raise NoMatchError(songid)
             else: # close enough to autocorrect for them.
-                song = best_match
+                song = self.songs[best_match]
         return song
 
-    def play_next_song(self, category, use_bid=True):
-        """ Automatically play next song from bid queue, or randomly
+    def play_next_song(self, category, force_random=False):
+        """ Play a song from the given category: from a bid if one exists, or randomly.
 
         If a song was queued from a bid, play that (and remove from bid_queue)
         Otherwise, let the selectorCat pick a song for the given category.
         Returns the info for the played song, for display status purposes.
         """
-        if category in self.bid_queue and use_bid:
+        
+        if category in self.bid_queue and not force_random:
             queued = self.bid_queue.pop(category)
             nextsong = self.songs[queued["song"]]
-            # Charge the user their bid
-            tokens.adjust_tokens(queued["username"], -queued["tokens"])
+            # Charge the user their bid (currently disabled; use bidCat here)
+            #self.bank.adjust_tokens(queued["username"], -queued["tokens"])
         else:
             # Otherwise, let the selectorCat decide a random song for this category.
             try:
@@ -321,23 +323,22 @@ class MusicCat(object):
             tokens = int(tokens)
         except:
             raise ValueError("Invalid amount of tokens!")
-        nextcategory = self.next_category()
-        songinfo = self.find_song_info(songid)
+            
+        if self.allow_bidding_on_future_categories:
+            self.bid(user, songid, tokens)
+        else: 
+            #only allow bidding on the current category
+            nextcategory = self.next_category()
+            # if you bid during betting (when the next category is technically warning), treat the next category as battle
+            if not self.no_bidding_on_warning and (nextcategory == "warning"):
+                nextcategory = "battle"
+                
+            if nextcategory in songinfo['types']:
+                self.bid(user, songid, tokens, nextcategory)
+            else:
+                raise InvalidCategoryError(nextcategory, songid)
 
-        # if you bid during betting (when the next category is technically warning), treat the next category as battle
-        if not self.no_bidding_on_warning and (nextcategory == "warning"):
-            nextcategory = "battle"
-
-        category_is_ok = False
-        if nextcategory in songinfo['types']:
-            category_is_ok = True
-
-        if category_is_ok:
-            self.bid(user, songid, tokens, nextcategory)
-        else:
-            raise InvalidCategoryError(nextcategory, songid)
-
-    def bid(self, user, songid, tokens, category=None):
+    def bid(self, userid, songid, tokens, category=None):
         """Attempt to place bid to queue song, for a user
 
         Tokens is assumed validated by the caller.
@@ -348,7 +349,10 @@ class MusicCat(object):
 
         if category is None:  # Default to the first type in the song's list.
             category = song["types"][0]
-
+            
+        if not self.no_bidding_on_warning and (category == "warning"):
+                category = "battle"
+            
         if category not in song["types"]:
             raise InvalidCategoryError(songid, category)
         
@@ -366,16 +370,17 @@ class MusicCat(object):
 
 
         #bidding logic; todo: replace with bidCat
-        current_bid = self.queue.get(category, None)
+        current_bid = self.bid_queue.get(category, None)
         if current_bid is None:  # autowin!
-            self._set_bid(user, song, tokens)
-        elif user.username == current_bid["username"]:
+            self.bid_queue[category] = {"username": userid, "song": song["id"], "tokens": tokens}
+            self.log.info("{} placed bid of {} for {}".format(userid, tokens, song["id"]))
+        elif userid == current_bid["username"]:
             raise ValueError("Same bidder can't outbid themselves")
         elif tokens <= current_bid["tokens"]:
             raise InsufficientBidError(bid, current_bid["tokens"])
         else:
-            self.bid_queue[category] = {"username": user.username, "song": song["id"], "tokens": tokens}
-            self.log.info("{} placed bid of {} for {}".format(user.username, tokens, song["id"]))
+            self.bid_queue[category] = {"username": userid, "song": song["id"], "tokens": tokens}
+            self.log.info("Current winner: {} placed bid of {} for {}".format(userid, tokens, song["id"]))
 
     def rate_command(self, user, args):
         """Store an user's rating in the database, parsing the command.
