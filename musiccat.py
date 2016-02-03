@@ -204,10 +204,8 @@ class MusicCat(object):
 
             # queue an operation to update self.song_info
             if self.song_info:
-                bulkOperation.find_one_and_update(
-                    {'_id': song["id"]},
-                    {'$setOnInsert': {'volume_multiplier': self.default_song_volume}},
-                    upsert=True)
+                bulkOperation.find({'_id': song["id"]}).upsert().update(
+                    {'$setOnInsert': {'volume_multiplier': self.default_song_volume}})
 
             newsongs[song["id"]] = song
 
@@ -220,8 +218,8 @@ class MusicCat(object):
 
             self.series_last_played_info.find_one_and_update(
                 {'_id': gamedata["series"]},
-		{'$setOnInsert': new_object},
-		upsert=True)
+                {'$setOnInsert': last_played},
+                upsert=True)
 
 
         # do all the updates at once
@@ -293,10 +291,10 @@ class MusicCat(object):
             matching_song = self.song_info.find_one({"_id": nextsong["id"]})
             if matching_song:
                 # assuming that we only want the first match anyways
-                self.current_song_volume = matching_song.volume_multiplier
+                self.current_song_volume = matching_song["volume_multiplier"]
                 self.update_winamp_volume()
                 
-                if matching_song.series:
+                if "series" in matching_song:
                     self.series_last_played_info.update({category : datetime.datetime.now()})
             else:
                 # Volume data should be fed into the database when the metadata files are loaded, but just in case
@@ -312,12 +310,12 @@ class MusicCat(object):
 
     def bid_command(self, userdata, args):
         """Handle a bid command
-        userdata: a dict containing {username: String}
+        userdata: an object; userdata.username is assumed to be a string
         args: A string: "songid tokens" separated by a space.
         May throw a ValueError, InvalidCategoryError, or InsufficientBidError (from the self.bid() call).
         If the song or series has been played recently, may raise a SongPlayedRecentlyError or a SeriesPlayedRecentlyError.
         """
-        user = userdata["username"]
+        user = userdata.username
         songid, tokens = args.split(" ")
         try:
             tokens = int(tokens)
