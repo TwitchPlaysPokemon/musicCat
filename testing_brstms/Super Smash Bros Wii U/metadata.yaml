@@ -1,0 +1,27 @@
+id: super_smash_bros_for_wii_u
+title: "Super Smash Bros. for Wii U"
+platform: "Wii U"
+year: 2014
+series: smash
+path: "Other/Super Smash Bros Wii U"
+songs:
+  - id: yoshi's_woolly_world_(remix)
+    title: "Yoshi's Woolly World (Remix)"
+    path: "Yoshi's Woolly World (Remix).brstm"
+    type: betting
+  - id: battle_team_flare
+    title: "Battle! Team Flare"
+    path: "Battle! Team Flare.brstm"
+    type: battle
+  - id: rosalina_in_the_observatory__luma's_theme
+    title: "Rosalina in the Observatory / Luma's Theme"
+    path: "Rosalina in the Observatory  Luma's Theme.brstm"
+    type: betting
+  - id: final_destination_ver_2
+    path: "Final Destination Ver. 2.brstm"
+    title: "Final Destination Ver. 2"
+    type: battle
+  - id: ryu_stage
+    path: "Ryu Stage.brstm"
+    title: "Ryu Stage"
+    type: betting

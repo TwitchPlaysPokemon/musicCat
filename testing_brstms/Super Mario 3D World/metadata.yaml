@@ -1,0 +1,15 @@
+id: super_mario_3D_world
+title: "Super Mario 3D World"
+platform: "Wii U"
+year: 2013
+series: mario
+path: "Other/Super Mario 3D World"
+songs:
+  - id: double_cherry_pass
+    title: "Double Cherry Pass"
+    path: "Double Cherry Pass.brstm"
+    type: betting
+  - id: footlight_lane
+    title: "Footlight Lane"
+    path: "Footlight Lane.brstm"
+    type: break
