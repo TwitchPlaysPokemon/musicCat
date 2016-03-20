@@ -30,10 +30,9 @@ class NoMatchError(ValueError):
 
 class MusicCat(object):
 
-    def __init__(self, library_path, winamp_path, minimum_fuzzymatch_ratio=0.5):
+    def __init__(self, library_path, winamp_path):
         self.library_path = library_path
         self.winamp_path = winamp_path
-        self.minimum_fuzzymatch_ratio = minimum_fuzzymatch_ratio
         self.songs = {}
         self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
