@@ -37,6 +37,7 @@ class MusicCat(object):
         self.songs = {}
         self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
+        self.paused = False
 
         self.refresh_song_list()
 
@@ -120,7 +121,7 @@ class MusicCat(object):
             #If that didn't work, get all songs that seem close enough
             return [s for s in self.songs if Levenshtein.ratio(songid, s) > self.minimum_fuzzymatch_ratio]
 
-    def play_next_song(self, songid):
+    def play_song(self, songid):
         """ Play a song. May raise a ValueError if the songid doesn't exist."""
         nextsong = self.songs[songid]
         self.current_song = nextsong
@@ -135,10 +136,15 @@ class MusicCat(object):
         self.winamp.setVolume(volume*255)
 
     def pause_winamp(self):
-        pass
+        self.winamp.pause()
+        self.paused = True
 
     def unpause_winamp(self):
-        pass
+        #winamp.play() will restart the song from the beginning if not paused.
+        #If you want to restart the song, just call play_song with the same song.
+        if self.paused:
+            self.winamp.play()
+            self.paused = False
 
     def print_total_amt_songs(self, category=None):
         """Print the total number of songs, either for all songs or for a specific category if one is given."""
