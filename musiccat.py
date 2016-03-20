@@ -19,7 +19,6 @@ import yaml
 import os
 import subprocess
 import logging
-from bson import CodecOptions, SON
 
 import winamp
 
@@ -147,8 +146,13 @@ class MusicCat(object):
             self.paused = False
 
     def print_total_amt_songs(self, category=None):
-        """Print the total number of songs, either for all songs or for a specific category if one is given."""
-        pass
+        """Print and return the total number of songs (or the amount of songs in a specific category if one is given)"""
+        if category == None:
+            amtsongs = len(self.songs)
+        else:
+            amtsongs = len([songid for songid in self.songs if category in self.songs[songid]['types']])
+        print(amtsongs)
+        return amtsongs
 
 if __name__ == "__main__":
     musiccat = MusicCat(".")
