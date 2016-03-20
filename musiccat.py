@@ -151,15 +151,6 @@ class MusicCat(object):
             self.winamp.play()
             self.paused = False
 
-    def amt_songs(self, category=None):
-        """Return the total number of songs (or the amount of songs in a specific category if one is given).
-        For most purposes, using len(musiccat.songs) is preferred."""
-        if category == None:
-            amtsongs = len(self.songs)
-        else:
-            amtsongs = len([songid for songid in self.songs if category in self.songs[songid].types])
-        return amtsongs
-
 def rtfm():
     print("""Usage:
     musiccat.py count [category]     prints the total amount of songs found. filtered by a category if supplied
