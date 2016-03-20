@@ -110,15 +110,16 @@ class MusicCat(object):
         return self.songs[songid]
 
     def search(self,songid):
-        """Search through all songs in self.songs; return any IDs close to what is typed out."""
+        """Search through all songs in self.songs; return any IDs close to what is typed out.
+        Returns an array of tuples, each containing (songid, matchratio) where matchratio goes from 0 to 1; 1 being a better match. This array is also pre-sorted by match ratio."""
         #Try exact match
         song = self.songs.get(songid, None)
 
         if song is not None:
-            return [song]
+            return [(song, 1.0)]
         else:
             #If that didn't work, get all songs that seem close enough
-            return [s for s in self.songs if Levenshtein.ratio(songid, s) > self.minimum_fuzzymatch_ratio]
+            return sorted([(s,Levenshtein.ratio(songid, s))  for s in self.songs], key=lambda s: s[1], reverse=True)
 
     def play_song(self, songid):
         """ Play a song. May raise a ValueError if the songid doesn't exist."""
