@@ -1,5 +1,5 @@
 # TPPBR MusicCat Song Library
-# Dependencies: pyyaml, python-Levenshtein, pypiwin32
+# Dependencies: pyyaml, python-Levenshtein, pypiwin32 (windows-only)
 # see also setup.py, python-Levenshtein needs compilation or manual installation via binary.
 # Please install all with pip3
 
@@ -20,6 +20,7 @@ import yaml
 import os
 import subprocess
 import logging
+from collections import namedtuple
 
 import winamp
 
@@ -28,6 +29,9 @@ class NoMatchError(ValueError):
     def __init__(self, songid):
         super(NoMatchError, self).__init__("Song ID {} not found.".format(songid))
         self.songid = songid
+
+Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath"))
+Game = namedtuple("Game", ("id", "title", "platform", "year", "series", "path"))
 
 class MusicCat(object):
 
@@ -82,24 +86,23 @@ class MusicCat(object):
         system = gamedata["platform"]
         songs = gamedata.pop("songs")
         for song in songs:
-            song["game"] = gamedata
-            song["fullpath"] = os.path.join(path, song["path"])
-
-            #some sanity checks
-            if song["id"] in self.songs:
-                self.log.warn("Songid conflict! {} exists twice, once in {} and once in {}!".format(song["id"], self.songs[song["id"]]["game"]["id"], gameid))
-            if song["id"] in newsongs:
-                self.log.warn("Songid conflict! {} exists twice in the same game, {}.".format(song["id"], gameid))
-            if not os.path.isfile(song["fullpath"]):
-                self.log.error("Songid {} doesn't have a BRSTM file at {}!".format(song["id"], song["path"]))
+            fullpath = os.path.join(path, song["path"])
 
             # Convert single type to a stored list
             if "type" in song:
                 song["types"] = [song.pop("type")]
-            newsongs[song["id"]] = song
 
-        # All data successfully imported; apply to existing metadata
-        self.songs.update(newsongs)
+            newsong = Song(song["id"], song["title"], song["path"], song["types"], Game._make(gamedata), fullpath)
+
+            #some sanity checks
+            if newsong.id in self.songs:
+                self.log.warn("Songid conflict! {} exists twice, once in {} and once in {}!".format(newsong.id, self.songs[newsong.id].game.id, gameid))
+            if newsong.id in newsongs:
+                self.log.warn("Songid conflict! {} exists twice in the same game, {}.".format(newsong.id, gameid))
+            if not os.path.isfile(newsong.fullpath):
+                self.log.error("Songid {} doesn't have a BRSTM file at {}!".format(newsong.id, newsong.fullpath))
+            #add to song list!
+            self.songs[newsong.id] = newsong
 
     def _play_file(self, songfile):
         """ Runs Winamp to play given song file. 
@@ -113,16 +116,16 @@ class MusicCat(object):
         Will raise a ValueError if the songid does not exist.
 
         Returned object is of the form
-        {"id": string,
-        "title": string,
-        "game": {"id": string,
-                "title": string,
-                "platform": string,
-                "year": int (not a string!),
-                "series": string},
-        "path": string,
-        "fullpath": string,
-        "types": [string (, string...)]}
+        {id: string,
+        title: string,
+        game: {id: string,
+                title: string,
+                platform: string,
+                year: int (not a string!),
+                series: string},
+        path: string,
+        fullpath: string,
+        types: [string (, string...)]}
         """
         return self.songs[songid]
 
@@ -136,7 +139,7 @@ class MusicCat(object):
             return [(song, 1.0)]
         else:
             #If that didn't work, get all songs that seem close enough
-            return sorted([(s,Levenshtein.ratio(songid, s))  for s in self.songs], key=lambda s: s[1], reverse=True)
+            return sorted([(s,Levenshtein.ratio(songid, s)) for s in self.songs], key=lambda s: s[1], reverse=True)
 
     def play_song(self, songid):
         """ Play a song. May raise a NoMatchError if the songid doesn't exist."""
@@ -144,7 +147,7 @@ class MusicCat(object):
             raise NoMatchError(songid)
         nextsong = self.songs[songid]
         self.current_song = nextsong
-        self._play_file(nextsong["fullpath"])
+        self._play_file(nextsong.fullpath)
         self.log.info("Now playing {}".format(nextsong))
 
     def set_winamp_volume(self, volume):
@@ -171,7 +174,7 @@ class MusicCat(object):
         if category == None:
             amtsongs = len(self.songs)
         else:
-            amtsongs = len([songid for songid in self.songs if category in self.songs[songid]['types']])
+            amtsongs = len([songid for songid in self.songs if category in self.songs[songid].types])
         return amtsongs
 
 if __name__ == "__main__":
