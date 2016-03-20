@@ -91,6 +91,8 @@ class MusicCat(object):
         newsongs = {}
 
         songs = gamedata.pop("songs")
+        if 'series' not in gamedata:
+            gamedata['series'] = None
         game = Game(**gamedata)
 
         for song in songs:
