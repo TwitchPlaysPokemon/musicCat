@@ -49,7 +49,7 @@ class MusicCat(object):
                 if filename.endswith(".yaml"):
                     metafilename = os.path.join(root, filename)
                     try:
-                        self.import_metadata(metafilename)
+                        self._import_metadata(metafilename)
                     except Exception as e:
                         self.log.error("Exception while loading file {}: {}".format(metafilename, e))
         if len(self.songs) == 0:
@@ -71,7 +71,7 @@ class MusicCat(object):
           types: [type, type] #one or the other, depending on multiple
     """
 
-    def import_metadata(self, metafilename):
+    def _import_metadata(self, metafilename):
         """Import metadata given a metadata filename. Assumed to be one game per metadata file."""
         with open(metafilename) as metafile:
             gamedata = yaml.load(metafile)
@@ -101,7 +101,7 @@ class MusicCat(object):
         # All data successfully imported; apply to existing metadata
         self.songs.update(newsongs)
 
-    def play_file(self, songfile):
+    def _play_file(self, songfile):
         """ Runs Winamp to play given song file. 
             Though this may appear to, using subprocess.Popen does not leak memory because winamp makes the processes all exit."""
         self.winamp.stop()
@@ -144,7 +144,7 @@ class MusicCat(object):
             raise NoMatchError(songid)
         nextsong = self.songs[songid]
         self.current_song = nextsong
-        self.play_file(nextsong["fullpath"])
+        self._play_file(nextsong["fullpath"])
         self.log.info("Now playing {}".format(nextsong))
 
     def set_winamp_volume(self, volume):
@@ -166,7 +166,8 @@ class MusicCat(object):
             self.paused = False
 
     def amt_songs(self, category=None):
-        """Return the total number of songs (or the amount of songs in a specific category if one is given)"""
+        """Return the total number of songs (or the amount of songs in a specific category if one is given).
+        For most purposes, using len(musiccat.songs) is preferred."""
         if category == None:
             amtsongs = len(self.songs)
         else:
