@@ -81,13 +81,19 @@ class MusicCat(object):
         system = gamedata["platform"]
         songs = gamedata.pop("songs")
         for song in songs:
-            if song["id"] in self.songs:
-                self.log.warn("Songid {} exists twice, once in {} and once in {}! Ignoring duplicate. ".format(song["id"], self.songs[song["id"]]["game"]["id"], gameid))
-            if song["id"] in newsongs:
-                self.log.warn("Songid {} exists twice in the same game, {}. Ignoring duplicate.".format(song["id"], gameid))
-            song["fullpath"] = os.path.join(path, song["path"])
             song["game"] = gamedata
-            if "type" in song: # Convert single type to a stored list
+            song["fullpath"] = os.path.join(path, song["path"])
+
+            #some sanity checks
+            if song["id"] in self.songs:
+                self.log.warn("Songid conflict! {} exists twice, once in {} and once in {}!".format(song["id"], self.songs[song["id"]]["game"]["id"], gameid))
+            if song["id"] in newsongs:
+                self.log.warn("Songid conflict! {} exists twice in the same game, {}.".format(song["id"], gameid))
+            if not os.path.isfile(song["fullpath"]):
+                self.log.error("Songid {} doesn't have a BRSTM file at {}!".format(song["id"], song["path"]))
+
+            # Convert single type to a stored list
+            if "type" in song:
                 song["types"] = [song.pop("type")]
             newsongs[song["id"]] = song
 
@@ -104,6 +110,18 @@ class MusicCat(object):
     def get_song_info(self, songid):
         """Return named tuples for a given (valid) songid.
         Will raise a ValueError if the songid does not exist.
+
+        Returned object is of the form
+        {"id": string,
+        "title": string,
+        "game": {"id": string,
+                "title": string,
+                "platform": string,
+                "year": int (not a string!),
+                "series": string},
+        "path": string,
+        "fullpath": string,
+        "types": [string (, string...)]}
         """
         if songid.find("-") > 0: # Dash separates game and song id
             gameid, songid = songid.split("-")
@@ -111,7 +129,7 @@ class MusicCat(object):
 
     def search(self,songid):
         """Search through all songs in self.songs; return any IDs close to what is typed out.
-        Returns an array of tuples, each containing (songid, matchratio) where matchratio goes from 0 to 1; 1 being a better match. This array is also pre-sorted by match ratio."""
+        Returns an array of tuples of the form (songid, matchratio), where matchratio goes from 0 to 1; 1 being a better match. This array is also pre-sorted by match ratio."""
         #Try exact match
         song = self.songs.get(songid, None)
 
@@ -122,7 +140,9 @@ class MusicCat(object):
             return sorted([(s,Levenshtein.ratio(songid, s))  for s in self.songs], key=lambda s: s[1], reverse=True)
 
     def play_song(self, songid):
-        """ Play a song. May raise a ValueError if the songid doesn't exist."""
+        """ Play a song. May raise a NoMatchError if the songid doesn't exist."""
+        if songid not in self.songs:
+            raise NoMatchError(songid)
         nextsong = self.songs[songid]
         self.current_song = nextsong
         self.play_file(nextsong["fullpath"])
@@ -161,5 +181,6 @@ if __name__ == "__main__":
     #command-line access
     #run "musiccat.py search <songid> to call musiccat.search("songid"), for example
     #or "musiccat.py amt_songs"
-    if sys.argv[1] in dir(MusicCat):
-        print(MusicCat.__dict__.get(sys.argv[1])(musiccat, *sys.argv[2:]))
+    if len(sys.argv) > 1:
+        if sys.argv[1] in dir(MusicCat):
+            print(MusicCat.__dict__.get(sys.argv[1])(musiccat, *sys.argv[2:]))
