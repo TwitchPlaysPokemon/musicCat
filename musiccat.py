@@ -29,6 +29,12 @@ class NoMatchError(ValueError):
     def __init__(self, songid):
         super(NoMatchError, self).__init__("Song ID {} not found.".format(songid))
         self.songid = songid
+        
+class SongIdConflictError(ValueError):
+    """Raised when a song id occurs twice."""
+    def __init__(self, songid):
+        super(NoMatchError, self).__init__("Song ID {} already in use.".format(songid))
+        self.songid = songid
 
 Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath"))
 Game = namedtuple("Game", ("id", "title", "platform", "year", "series", "path"))
@@ -46,7 +52,7 @@ class MusicCat(object):
         self.refresh_song_list()
 
     def refresh_song_list(self):
-        """ Clears songlist and loads all metadata.yaml files under self.library_path"""
+        """Clears songlist and loads all metadata.yaml files under self.library_path"""
         self.songs = {}
         for root, dirs, files in os.walk(self.library_path):
             for filename in files:
@@ -97,17 +103,19 @@ class MusicCat(object):
 
             #some sanity checks
             if newsong.id in self.songs:
-                self.log.warn("Songid conflict! {} exists twice, once in {} and once in {}!".format(newsong.id, self.songs[newsong.id].game.id, game.id))
+                self.log.critical("Songid conflict! {} exists twice, once in {} and once in {}!".format(newsong.id, self.songs[newsong.id].game.id, game.id))
+                raise SongIdConflictError(newsong.id)
             if newsong.id in newsongs:
-                self.log.warn("Songid conflict! {} exists twice in the same game, {}.".format(newsong.id, game.id))
+                self.log.critical("Songid conflict! {} exists twice in the same game, {}.".format(newsong.id, game.id))
+                raise SongIdConflictError(newsong.id)
             if not os.path.isfile(newsong.fullpath):
                 self.log.error("Songid {} doesn't have a BRSTM file at {}!".format(newsong.id, newsong.fullpath))
             #add to song list!
             self.songs[newsong.id] = newsong
 
     def _play_file(self, songfile):
-        """ Runs Winamp to play given song file. 
-            Though this may appear to, using subprocess.Popen does not leak memory because winamp makes the processes all exit."""
+        """Plays the given song file. 
+        Though this may appear to, using subprocess.Popen does not leak memory because winamp makes the processes all exit."""
         self.winamp.stop()
         self.winamp.clearPlaylist()
         p = subprocess.Popen('"{0}" "{1}"'.format(self.winamp_path, songfile))
@@ -141,7 +149,7 @@ class MusicCat(object):
         return sorted(results, key=lambda s: s[1], reverse=True)
 
     def play_song(self, songid):
-        """ Play a song. May raise a NoMatchError if the songid doesn't exist."""
+        """Play a song. May raise a NoMatchError if the songid doesn't exist."""
         if songid not in self.songs:
             raise NoMatchError(songid)
         nextsong = self.songs[songid]
@@ -150,17 +158,19 @@ class MusicCat(object):
         self.log.info("Now playing {}".format(nextsong))
 
     def set_volume(self, volume):
-        """Update winamp's volume. Volume goes from 0 to 1"""
+        """Update the volume. Volume goes from 0.0 to 1.0"""
         if (volume < 0) or (volume > 1):
             raise ValueError("Volume must be between 0 and 1")
         #winamp expects a volume from 0 to 255
         self.winamp.setVolume(volume*255)
 
     def pause(self):
+        """Pauses the current song. Unpauses if already paused"""
         self.winamp.pause()
         self.paused = True
 
     def unpause(self):
+        """Unpauses the current song. Does nothing if it wasn't paused before."""
         #winamp.play() will restart the song from the beginning if not paused.
         #If you want to restart the song, just call play_song with the same song.
         if self.paused:
