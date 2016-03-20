@@ -22,7 +22,7 @@ import subprocess
 import logging
 from collections import namedtuple
 
-#import winamp
+import winamp
 
 class NoMatchError(ValueError):
     """Raised when a song id fails to match a song with any confidence"""
@@ -41,11 +41,12 @@ Game = namedtuple("Game", ("id", "title", "platform", "year", "series", "path"))
 
 class MusicCat(object):
 
-    def __init__(self, library_path, winamp_path):
+    def __init__(self, library_path, winamp_path, disable_nobrstm_exception=False):
         self.library_path = library_path
         self.winamp_path = winamp_path
+        self.disable_nobrstm_exception = disable_nobrstm_exception
         self.songs = {}
-        #self.winamp = winamp.Winamp()
+        self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
         self.paused = False
 
@@ -110,6 +111,8 @@ class MusicCat(object):
                 raise SongIdConflictError(newsong.id)
             if not os.path.isfile(newsong.fullpath):
                 self.log.error("Songid {} doesn't have a BRSTM file at {}!".format(newsong.id, newsong.fullpath))
+                if not self.disable_nobrstm_exception:
+                    raise FileNotFoundError(newsong.fullpath)
             #add to song list!
             self.songs[newsong.id] = newsong
 
@@ -191,7 +194,7 @@ def main():
     import sys
     
     winamp_path = os.path.expandvars("%PROGRAMFILES(X86)%/Winamp/winamp.exe")
-    musiccat = MusicCat(".", winamp_path)
+    musiccat = MusicCat(".", winamp_path, disable_nobrstm_exception=True)
 
     #command-line access
     #run "musiccat.py search <songid> to call musiccat.search("songid"), for example
