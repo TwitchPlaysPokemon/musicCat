@@ -26,15 +26,15 @@ import winamp
 
 class NoMatchError(ValueError):
     """Raised when a song id fails to match a song with any confidence"""
-    def __init__(self, songid):
-        super(NoMatchError, self).__init__("Song ID {} not found.".format(songid))
-        self.songid = songid
+    def __init__(self, song_id):
+        super().__init__("Song ID {} not found.".format(song_id))
+        self.song_id = song_id
         
 class SongIdConflictError(ValueError):
     """Raised when a song id occurs twice."""
-    def __init__(self, songid):
-        super(SongIdConflictError, self).__init__("Song ID {} already in use.".format(songid))
-        self.songid = songid
+    def __init__(self, song_id):
+        super().__init__("Song ID {} already in use.".format(song_id))
+        self.song_id = song_id
 
 Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath"))
 Game = namedtuple("Game", ("id", "title", "platform", "year", "series", "path"))
@@ -151,11 +151,11 @@ class MusicCat(object):
             
         return sorted(results, key=lambda s: s[1], reverse=True)
 
-    def play_song(self, songid):
-        """Play a song. May raise a NoMatchError if the songid doesn't exist."""
-        if songid not in self.songs:
-            raise NoMatchError(songid)
-        nextsong = self.songs[songid]
+    def play_song(self, song_id):
+        """Play a song. May raise a NoMatchError if the song_id doesn't exist."""
+        if song_id not in self.songs:
+            raise NoMatchError(song_id)
+        nextsong = self.songs[song_id]
         self.current_song = nextsong
         self._play_file(nextsong.fullpath)
         self.log.info("Now playing {}".format(nextsong))
@@ -197,7 +197,7 @@ def main():
     musiccat = MusicCat(".", winamp_path, disable_nobrstm_exception=True)
 
     #command-line access
-    #run "musiccat.py search <songid> to call musiccat.search("songid"), for example
+    #run "musiccat.py search <song_id> to call musiccat.search("song_id"), for example
     #or "musiccat.py amt_songs"
     if len(sys.argv) < 2:
         rtfm()
