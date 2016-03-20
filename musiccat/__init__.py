@@ -136,12 +136,14 @@ class MusicCat(object):
         results = []
         for song in self.songs.values():
             # search in title and gametitle
-            haystack = set(song.title.lower().split() + song.game.title.lower().split())
+            haystack1, haystack2 = set(song.title.lower().split()), set(song.game.title.lower().split())
             ratio = 0
             for keyword in keywords:
                 keyword = keyword.lower()
                 # determine best keyword match
-                subratio = max(Levenshtein.ratio(keyword, word) for word in haystack)
+                subratio1 = max(Levenshtein.ratio(keyword, word) for word in haystack1)
+                subratio2 = max(Levenshtein.ratio(keyword, word) for word in haystack2)
+                subratio = max(subratio1,subratio2*0.8)
                 if subratio < 0.7:
                     # assume low ratios are no match
                     subratio = 0
