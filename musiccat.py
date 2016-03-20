@@ -177,8 +177,13 @@ class MusicCat(object):
         return amtsongs
 
 if __name__ == "__main__":
+    #assumed windows-only for now
     import sys
-    musiccat = MusicCat(".", r"C:/Program Files (x86)/Winamp/winamp.exe")
+    
+    winamp_path = ''
+    if 'PROGRAMFILES(X86)' in os.environ:
+        winamp_path = os.environ['PROGRAMFILES(X86)'] + r"\Winamp\winamp.exe"
+    musiccat = MusicCat(".", winamp_path)
 
     #command-line access
     #run "musiccat.py search <songid> to call musiccat.search("songid"), for example
