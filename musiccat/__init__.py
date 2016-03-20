@@ -41,7 +41,7 @@ Game = namedtuple("Game", ("id", "title", "platform", "year", "series", "path"))
 
 class MusicCat(object):
 
-    def __init__(self, library_path, winamp_path, disable_nobrstm_exception=False):
+    def __init__(self, library_path, winamp_path, disable_nobrstm_exception=False, disable_auto_load=False):
         self.library_path = library_path
         self.winamp_path = winamp_path
         self.disable_nobrstm_exception = disable_nobrstm_exception
@@ -50,7 +50,8 @@ class MusicCat(object):
         self.log = logging.getLogger("musicCat")
         self.paused = False
 
-        self.refresh_song_list()
+        if not disable_auto_load:
+            self.refresh_song_list()
 
     def refresh_song_list(self):
         """Clears songlist and loads all metadata.yaml files under self.library_path"""
