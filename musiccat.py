@@ -31,24 +31,28 @@ class NoMatchError(ValueError):
 
 class MusicCat(object):
 
-    def __init__(self, library_path):
+    def __init__(self, library_path, minimum_fuzzymatch_ratio=0.5):
+        self.library_path = library_path
+        self.minimum_fuzzymatch_ratio = minimum_fuzzymatch_ratio
+        self.songs = {}
         self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
-	self.songs = {}
 
-	self.refresh_song_list()
+        self.refresh_song_list()
 
-    def refresh_song_list(self, root_path):
-        """ Clears songlist and loads all metadata.yaml files under the root directory"""
+    def refresh_song_list(self):
+        """ Clears songlist and loads all metadata.yaml files under self.library_path"""
         self.songs = {}
-        for root, dirs, files in os.walk(root_path):
+        for root, dirs, files in os.walk(self.library_path):
             for filename in files:
                 if filename.endswith(".yaml"):
                     metafilename = os.path.join(root, filename)
                     try:
                         self.import_metadata(metafilename)
                     except Exception as e:
-                        print("Exception while loading file {}: {}".format(metafilename, e))
+                        self.log.error("Exception while loading file {}: {}".format(metafilename, e))
+        if len(self.songs) == 0:
+            self.log.warn("No metadata found! MusicCat isn't going to do very much. (Current music library location: {} )".format(self.library_path))
     """
     Metadata.yaml format:
 
@@ -71,7 +75,7 @@ class MusicCat(object):
         with open(metafilename) as metafile:
             gamedata = yaml.load(metafile)
         path = os.path.dirname(metafilename)
-	newsongs = {}
+        newsongs = {}
 
         gameid = gamedata["id"]
         system = gamedata["platform"]
@@ -99,7 +103,7 @@ class MusicCat(object):
 
     def get_song_info(self, songid):
         """Return named tuples for a given (valid) songid.
-	Will raise a ValueError if the songid does not exist.
+        Will raise a ValueError if the songid does not exist.
         """
         if songid.find("-") > 0: # Dash separates game and song id
             gameid, songid = songid.split("-")
@@ -110,22 +114,11 @@ class MusicCat(object):
         #Try exact match
         song = self.songs.get(songid, None)
 
-        #If that didn't work, get all songs that seem close enough
-        if song is None:
-            best_ratio = 0
-            best_match = None
-            for s in self.songs:
-                ratio = Levenshtein.ratio(songid, s)
-                if ratio > best_ratio:
-                    best_ratio = ratio
-                    best_match = s
-            if best_ratio < self.minimum_autocorrect_ratio: # No close enough match, tell user closest match
-                raise BadMatchError(songid, best_match)
-            elif best_ratio < self.minimum_match_ratio: # No match close enough to be reliable
-                raise NoMatchError(songid)
-            else: # close enough to autocorrect for them.
-                song = self.songs[best_match]
-        return song
+        if song is not None:
+            return [song]
+        else:
+            #If that didn't work, get all songs that seem close enough
+            return [s for s in self.songs if Levenshtein.ratio(songid, s) > self.minimum_fuzzymatch_ratio]
 
     def play_next_song(self, songid):
         """ Play a song. May raise a ValueError if the songid doesn't exist."""
@@ -152,4 +145,5 @@ class MusicCat(object):
         pass
 
 if __name__ == "__main__":
-    pass
+    musiccat = MusicCat(".")
+    print(musiccat.songs)
