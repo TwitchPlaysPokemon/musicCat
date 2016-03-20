@@ -99,13 +99,13 @@ class MusicCat(object):
             song["fullpath"] = os.path.join(path, song["path"])
             song["game"] = game
 
-            # Convert single type to a stored list
+            # convert single type to a stored list
             if "type" in song:
                 song["types"] = [song.pop("type")]
             
             newsong = Song(**song)
 
-            #some sanity checks
+            # some sanity checks
             if newsong.id in self.songs:
                 self.log.critical("Songid conflict! {} exists twice, once in {} and once in {}!".format(newsong.id, self.songs[newsong.id].game.id, game.id))
                 raise SongIdConflictError(newsong.id)
@@ -116,7 +116,7 @@ class MusicCat(object):
                 self.log.error("Songid {} doesn't have a BRSTM file at {}!".format(newsong.id, newsong.fullpath))
                 if not self.disable_nobrstm_exception:
                     raise FileNotFoundError(newsong.fullpath)
-            #add to song list!
+            # add to song list!
             self.songs[newsong.id] = newsong
 
     def _play_file(self, songfile):
@@ -124,7 +124,7 @@ class MusicCat(object):
         Though this may appear to, using subprocess.Popen does not leak memory because winamp makes the processes all exit."""
         self.winamp.stop()
         self.winamp.clearPlaylist()
-        p = subprocess.Popen('"{0}" "{1}"'.format(self.winamp_path, songfile))
+        subprocess.Popen('"{0}" "{1}"'.format(self.winamp_path, songfile))
 
     def search(self, keywords, cutoff=0.3):
         """Search through all songs in self.songs.
@@ -144,10 +144,9 @@ class MusicCat(object):
                 subratio1 = max(Levenshtein.ratio(keyword, word) for word in haystack1)
                 subratio2 = max(Levenshtein.ratio(keyword, word) for word in haystack2)
                 subratio = max(subratio1,subratio2*0.8)
-                if subratio < 0.7:
+                if subratio > 0.7:
                     # assume low ratios are no match
-                    subratio = 0
-                ratio += subratio
+                    ratio += subratio
             ratio /= num_keywords
             
             if ratio > cutoff:
@@ -169,7 +168,7 @@ class MusicCat(object):
         """Update the volume. Volume goes from 0.0 to 1.0"""
         if (volume < 0) or (volume > 1):
             raise ValueError("Volume must be between 0 and 1")
-        #winamp expects a volume from 0 to 255
+        # winamp expects a volume from 0 to 255
         self.winamp.setVolume(volume*255)
 
     def pause(self):
@@ -179,8 +178,8 @@ class MusicCat(object):
 
     def unpause(self):
         """Unpauses the current song. Does nothing if it wasn't paused before."""
-        #winamp.play() will restart the song from the beginning if not paused.
-        #If you want to restart the song, just call play_song with the same song.
+        # winamp.play() will restart the song from the beginning if not paused.
+        # If you want to restart the song, just call play_song with the same song.
         if self.paused:
             self.winamp.play()
             self.paused = False
@@ -195,15 +194,13 @@ def rtfm():
     musiccat.py search <keyword>...  searches for a song by keywords and returns the best match""")
 
 def main():
-    #assumed windows-only for now
+    # assumed windows-only for now
     import sys
     
     winamp_path = os.path.expandvars("%PROGRAMFILES(X86)%/Winamp/winamp.exe")
     musiccat = MusicCat(".", winamp_path, disable_nobrstm_exception=True)
 
-    #command-line access
-    #run "musiccat.py search <song_id> to call musiccat.search("song_id"), for example
-    #or "musiccat.py amt_songs"
+    # command-line interface
     if len(sys.argv) < 2:
         rtfm()
         return
@@ -211,7 +208,6 @@ def main():
     command = sys.argv[1]
     args = sys.argv[2:]
     if command == "count":
-        category = None
         if args:
             category = args[0]
             count = sum(1 for song in musiccat.songs.values() if category in song.types)
