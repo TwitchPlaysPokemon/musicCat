@@ -112,24 +112,6 @@ class MusicCat(object):
         self.winamp.clearPlaylist()
         p = subprocess.Popen('"{0}" "{1}"'.format(self.winamp_path, songfile))
 
-    def get_song_info(self, songid):
-        """Return named tuples for a given (valid) songid.
-        Will raise a ValueError if the songid does not exist.
-
-        Returned object is of the form
-        {id: string,
-        title: string,
-        game: {id: string,
-                title: string,
-                platform: string,
-                year: int (not a string!),
-                series: string},
-        path: string,
-        fullpath: string,
-        types: [string (, string...)]}
-        """
-        return self.songs[songid]
-
     def search(self,songid):
         """Search through all songs in self.songs; return any IDs close to what is typed out.
         Returns an array of tuples of the form (songid, matchratio), where matchratio goes from 0 to 1; 1 being a better match. This array is also pre-sorted by match ratio."""
