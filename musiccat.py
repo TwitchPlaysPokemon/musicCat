@@ -22,7 +22,7 @@ import subprocess
 import logging
 from collections import namedtuple
 
-import winamp
+#import winamp
 
 class NoMatchError(ValueError):
     """Raised when a song id fails to match a song with any confidence"""
@@ -45,7 +45,7 @@ class MusicCat(object):
         self.library_path = library_path
         self.winamp_path = winamp_path
         self.songs = {}
-        self.winamp = winamp.Winamp()
+        #self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
         self.paused = False
 
@@ -190,9 +190,7 @@ def main():
     #assumed windows-only for now
     import sys
     
-    winamp_path = ''
-    if 'PROGRAMFILES(X86)' in os.environ:
-        winamp_path = os.environ['PROGRAMFILES(X86)'] + r"\Winamp\winamp.exe"
+    winamp_path = os.path.expandvars("%PROGRAMFILES(X86)%/Winamp/winamp.exe")
     musiccat = MusicCat(".", winamp_path)
 
     #command-line access
