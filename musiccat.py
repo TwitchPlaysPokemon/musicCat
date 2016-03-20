@@ -1,5 +1,6 @@
-# TPPBR MusicCat Song Library v2.3
+# TPPBR MusicCat Song Library
 # Dependencies: pyyaml, python-Levenshtein, pypiwin32
+# see also setup.py, python-Levenshtein needs compilation or manual installation via binary.
 # Please install all with pip3
 
 # (note: if installing python-Levenshtein complains about vcvarsall.bat,
