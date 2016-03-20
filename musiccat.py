@@ -146,15 +146,28 @@ class MusicCat(object):
             self.winamp.play()
             self.paused = False
 
-    def print_total_amt_songs(self, category=None):
-        """Print and return the total number of songs (or the amount of songs in a specific category if one is given)"""
+    def amt_songs(self, category=None):
+        """Return the total number of songs (or the amount of songs in a specific category if one is given)"""
         if category == None:
             amtsongs = len(self.songs)
         else:
             amtsongs = len([songid for songid in self.songs if category in self.songs[songid]['types']])
-        print(amtsongs)
         return amtsongs
 
 if __name__ == "__main__":
+    import sys
     musiccat = MusicCat(".")
-    print(musiccat.songs)
+
+    #command-line access
+    #run "musiccat.py search <songid> to call musiccat.search(songid)"
+    #This is horrible code because I don't know how to call a function with an array of arguments in python. I'm so sorry.
+
+    #This assumes that in the future no functions in musiccat get added that take more than one argument.
+    #one argument
+    if len(sys.argv) == 3:
+        if sys.argv[1] in dir(MusicCat):
+            print(MusicCat.__dict__.get(sys.argv[1])(musiccat, sys.argv[2]))
+    #no arguments
+    elif len(sys.argv) == 2:
+        if sys.argv[1] in dir(MusicCat):
+            print(MusicCat.__dict__.get(sys.argv[1])(musiccat))
