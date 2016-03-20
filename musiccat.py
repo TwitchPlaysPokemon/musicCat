@@ -82,23 +82,24 @@ class MusicCat(object):
         path = os.path.dirname(metafilename)
         newsongs = {}
 
-        gameid = gamedata["id"]
-        system = gamedata["platform"]
         songs = gamedata.pop("songs")
+        game = Game(**gamedata)
+
         for song in songs:
-            fullpath = os.path.join(path, song["path"])
+            song["fullpath"] = os.path.join(path, song["path"])
+            song["game"] = game
 
             # Convert single type to a stored list
             if "type" in song:
                 song["types"] = [song.pop("type")]
-
-            newsong = Song(song["id"], song["title"], song["path"], song["types"], Game._make(gamedata), fullpath)
+            
+            newsong = Song(**song)
 
             #some sanity checks
             if newsong.id in self.songs:
-                self.log.warn("Songid conflict! {} exists twice, once in {} and once in {}!".format(newsong.id, self.songs[newsong.id].game.id, gameid))
+                self.log.warn("Songid conflict! {} exists twice, once in {} and once in {}!".format(newsong.id, self.songs[newsong.id].game.id, game.id))
             if newsong.id in newsongs:
-                self.log.warn("Songid conflict! {} exists twice in the same game, {}.".format(newsong.id, gameid))
+                self.log.warn("Songid conflict! {} exists twice in the same game, {}.".format(newsong.id, game.id))
             if not os.path.isfile(newsong.fullpath):
                 self.log.error("Songid {} doesn't have a BRSTM file at {}!".format(newsong.id, newsong.fullpath))
             #add to song list!
@@ -139,7 +140,7 @@ class MusicCat(object):
             return [(song, 1.0)]
         else:
             #If that didn't work, get all songs that seem close enough
-            return sorted([(s,Levenshtein.ratio(songid, s)) for s in self.songs], key=lambda s: s[1], reverse=True)
+            return sorted([(s,Levenshtein.ratio(songid, s.id)) for s in self.songs.values()], key=lambda s: s[1], reverse=True)
 
     def play_song(self, songid):
         """ Play a song. May raise a NoMatchError if the songid doesn't exist."""
@@ -177,7 +178,16 @@ class MusicCat(object):
             amtsongs = len([songid for songid in self.songs if category in self.songs[songid].types])
         return amtsongs
 
-if __name__ == "__main__":
+def rtfm():
+    print("""Usage:
+    musiccat.py count [category]     prints the total amount of songs found. filtered by a category if supplied
+    musiccat.py play <song_id>       plays the song identified by the given song id
+    musiccat.py pause                pauses the current song (resumes if already paused)
+    musiccat.py unpause              resumes the current song (restarts the song if already running)
+    musiccat.py volume <volume>      sets the volume, float between 0.0 and 1.0
+    musiccat.py search <keyword>...  searches for a song by keywords and returns the best match""")
+
+def main():
     #assumed windows-only for now
     import sys
     
@@ -189,6 +199,53 @@ if __name__ == "__main__":
     #command-line access
     #run "musiccat.py search <songid> to call musiccat.search("songid"), for example
     #or "musiccat.py amt_songs"
-    if len(sys.argv) > 1:
-        if sys.argv[1] in dir(MusicCat):
-            print(MusicCat.__dict__.get(sys.argv[1])(musiccat, *sys.argv[2:]))
+    if len(sys.argv) < 2:
+        rtfm()
+        return
+    
+    command = sys.argv[1]
+    args = sys.argv[2:]
+    if command == "count":
+        category = None
+        if args:
+            category = args[0]
+            count = sum(1 for song in musiccat.songs.values() if category in song.types)
+            print("Number of songs in category %s: %d" % (category, count))
+        else:
+            print("Number of songs: %d" % len(musiccat.songs))
+    elif command == "play" and args:
+        try:
+            musiccat.play_song(args[0])
+        except NoMatchError:
+            print("No song with that id")
+    elif command == "pause":
+        musiccat.pause_winamp()
+    elif command == "unpause":
+        musiccat.unpause_winamp()
+    elif command == "volume" and args:
+        try:
+            volume = float(args[0])
+            if not 0.0 <= volume <= 1.0:
+                raise ValueError("Invalid volume range")
+            musiccat.set_winamp_volume(volume)
+        except ValueError:
+            print("Volume must be a float between 0.0 and 1.0")
+    elif command == "search" and args:
+        songs = musiccat.search(" ".join(args))
+        if not songs:
+            print("No songs found.")
+        else:
+            # maximum of 5 results
+            limit = 5
+            count = len(songs)
+            best = songs[:limit]
+            print("Found %d songs, best matches first:" % count)
+            for song, score in best:
+                print("%4.0f%%: %s (%s)" % (score*100, song.title, song.game.title))
+            if count > limit:
+                print("and %d more" % (count - limit))
+    else:
+        rtfm()
+
+if __name__ == "__main__":
+    main()
