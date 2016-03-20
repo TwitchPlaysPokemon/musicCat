@@ -1,3 +1,8 @@
 *.pyc
 config.yaml
 config.yml
+
+# IDE files
+.pydevproject
+.project
+.settings/
