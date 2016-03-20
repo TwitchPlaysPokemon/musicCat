@@ -159,15 +159,7 @@ if __name__ == "__main__":
     musiccat = MusicCat(".")
 
     #command-line access
-    #run "musiccat.py search <songid> to call musiccat.search(songid)"
-    #This is horrible code because I don't know how to call a function with an array of arguments in python. I'm so sorry.
-
-    #This assumes that in the future no functions in musiccat get added that take more than one argument.
-    #one argument
-    if len(sys.argv) == 3:
-        if sys.argv[1] in dir(MusicCat):
-            print(MusicCat.__dict__.get(sys.argv[1])(musiccat, sys.argv[2]))
-    #no arguments
-    elif len(sys.argv) == 2:
-        if sys.argv[1] in dir(MusicCat):
-            print(MusicCat.__dict__.get(sys.argv[1])(musiccat))
+    #run "musiccat.py search <songid> to call musiccat.search("songid"), for example
+    #or "musiccat.py amt_songs"
+    if sys.argv[1] in dir(MusicCat):
+        print(MusicCat.__dict__.get(sys.argv[1])(musiccat, *sys.argv[2:]))
