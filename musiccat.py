@@ -112,17 +112,33 @@ class MusicCat(object):
         self.winamp.clearPlaylist()
         p = subprocess.Popen('"{0}" "{1}"'.format(self.winamp_path, songfile))
 
-    def search(self,songid):
-        """Search through all songs in self.songs; return any IDs close to what is typed out.
-        Returns an array of tuples of the form (songid, matchratio), where matchratio goes from 0 to 1; 1 being a better match. This array is also pre-sorted by match ratio."""
-        #Try exact match
-        song = self.songs.get(songid, None)
+    def search(self, keywords, cutoff=0.3):
+        """Search through all songs in self.songs.
+        Determines all songs being matched by the supplied keywords.
+        Returns a list of tuples of the form (song, matchratio), where matchratio goes from <cutoff> to 1.0;
+        1.0 being a perfect match. The result is sorted by that value, highest match ratios first."""
 
-        if song is not None:
-            return [(song, 1.0)]
-        else:
-            #If that didn't work, get all songs that seem close enough
-            return sorted([(s,Levenshtein.ratio(songid, s.id)) for s in self.songs.values()], key=lambda s: s[1], reverse=True)
+        num_keywords = len(keywords)
+        results = []
+        for song in self.songs.values():
+            # search in title and gametitle
+            haystack = set(song.title.lower().split() + song.game.title.lower().split())
+            ratio = 0
+            for keyword in keywords:
+                keyword = keyword.lower()
+                # determine best keyword match
+                subratio = max(Levenshtein.ratio(keyword, word) for word in haystack)
+                if subratio < 0.7:
+                    # assume low ratios are no match
+                    subratio = 0
+                ratio += subratio
+            ratio /= num_keywords
+            
+            if ratio > cutoff:
+                # random cutoff value
+                results.append((song, ratio))
+            
+        return sorted(results, key=lambda s: s[1], reverse=True)
 
     def play_song(self, songid):
         """ Play a song. May raise a NoMatchError if the songid doesn't exist."""
@@ -204,7 +220,7 @@ def main():
         except ValueError:
             print("Volume must be a float between 0.0 and 1.0")
     elif command == "search" and args:
-        songs = musiccat.search(" ".join(args))
+        songs = musiccat.search(args)
         if not songs:
             print("No songs found.")
         else:
