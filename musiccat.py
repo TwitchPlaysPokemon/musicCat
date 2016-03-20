@@ -33,7 +33,7 @@ class NoMatchError(ValueError):
 class SongIdConflictError(ValueError):
     """Raised when a song id occurs twice."""
     def __init__(self, songid):
-        super(NoMatchError, self).__init__("Song ID {} already in use.".format(songid))
+        super(SongIdConflictError, self).__init__("Song ID {} already in use.".format(songid))
         self.songid = songid
 
 Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath"))
