@@ -30,8 +30,9 @@ class NoMatchError(ValueError):
 
 class MusicCat(object):
 
-    def __init__(self, library_path, minimum_fuzzymatch_ratio=0.5):
+    def __init__(self, library_path, winamp_path, minimum_fuzzymatch_ratio=0.5):
         self.library_path = library_path
+        self.winamp_path = winamp_path
         self.minimum_fuzzymatch_ratio = minimum_fuzzymatch_ratio
         self.songs = {}
         self.winamp = winamp.Winamp()
@@ -176,7 +177,7 @@ class MusicCat(object):
 
 if __name__ == "__main__":
     import sys
-    musiccat = MusicCat(".")
+    musiccat = MusicCat(".", r"C:/Program Files (x86)/Winamp/winamp.exe")
 
     #command-line access
     #run "musiccat.py search <songid> to call musiccat.search("songid"), for example
