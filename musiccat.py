@@ -124,8 +124,6 @@ class MusicCat(object):
         "fullpath": string,
         "types": [string (, string...)]}
         """
-        if songid.find("-") > 0: # Dash separates game and song id
-            gameid, songid = songid.split("-")
         return self.songs[songid]
 
     def search(self,songid):
