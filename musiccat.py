@@ -133,18 +133,18 @@ class MusicCat(object):
         self._play_file(nextsong.fullpath)
         self.log.info("Now playing {}".format(nextsong))
 
-    def set_winamp_volume(self, volume):
+    def set_volume(self, volume):
         """Update winamp's volume. Volume goes from 0 to 1"""
         if (volume < 0) or (volume > 1):
             raise ValueError("Volume must be between 0 and 1")
         #winamp expects a volume from 0 to 255
         self.winamp.setVolume(volume*255)
 
-    def pause_winamp(self):
+    def pause(self):
         self.winamp.pause()
         self.paused = True
 
-    def unpause_winamp(self):
+    def unpause(self):
         #winamp.play() will restart the song from the beginning if not paused.
         #If you want to restart the song, just call play_song with the same song.
         if self.paused:
@@ -201,15 +201,15 @@ def main():
         except NoMatchError:
             print("No song with that id")
     elif command == "pause":
-        musiccat.pause_winamp()
+        musiccat.pause()
     elif command == "unpause":
-        musiccat.unpause_winamp()
+        musiccat.unpause()
     elif command == "volume" and args:
         try:
             volume = float(args[0])
             if not 0.0 <= volume <= 1.0:
                 raise ValueError("Invalid volume range")
-            musiccat.set_winamp_volume(volume)
+            musiccat.set_volume(volume)
         except ValueError:
             print("Volume must be a float between 0.0 and 1.0")
     elif command == "search" and args:
