@@ -67,7 +67,7 @@ class MusicCat(object):
                     try:
                         self._import_metadata(metafilename)
                     except Exception as e:
-                        self.log.error("Exception while loading file {}: {}".format(metafilename, e))
+                        self.log.error("{} while loading file {}: {}".format(type(e).__name__, metafilename, str(e)))
         if len(self.songs) == 0:
             self.log.warn("No metadata found! MusicCat isn't going to do very much. (Current music library location: {} )".format(self.library_path))
     """
