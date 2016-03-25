@@ -36,7 +36,7 @@ class SongIdConflictError(ValueError):
         super().__init__("Song ID {} already in use.".format(song_id))
         self.song_id = song_id
 
-Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath"))
+Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath", "ends"))
 Game = namedtuple("Game", ("id", "title", "platform", "year", "series", "path"))
 
 class MusicCat(object):
@@ -50,7 +50,7 @@ class MusicCat(object):
         self.disable_nobrstm_exception = disable_nobrstm_exception
         self.disable_id_conflict_exception = disable_id_conflict_exception
         self.songs = {}
-        self.winamp = winamp.Winamp()
+        #self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
         self.paused = False
 
@@ -85,6 +85,7 @@ class MusicCat(object):
           path:
           type: type
           types: [type, type] #one or the other, depending on multiple
+          ends: [seconds] #optional
     """
 
     def _import_metadata(self, metafilename):
@@ -106,6 +107,13 @@ class MusicCat(object):
             # convert single type to a stored list
             if "type" in song:
                 song["types"] = [song.pop("type")]
+
+            #if no ends provided, say so explicitly
+            if "ends" not in song:
+                song["ends"] = None
+            #convert single end time to list
+            elif (type(song["ends"]) == int) or (type(song["ends"]) == float):
+                song["ends"] = [song["ends"]]
             
             newsong = Song(**song)
 
@@ -125,7 +133,11 @@ class MusicCat(object):
                                newsong.id, newsong.fullpath)
                 if not self.disable_nobrstm_exception:
                     raise FileNotFoundError(newsong.fullpath)
-            # add to song list!
+            if newsong.ends != None:
+                for endtime in newsong.ends:
+                    if endtime < 10:
+                        self.log.warn("Songid {} has an end of {}, which seems fishy (end times are in seconds, not minutes; Did you mean to put {}?)".format(newsong.id, endtime, int(endtime*60)))
+            #add to song list!
             self.songs[newsong.id] = newsong
 
     def _play_file(self, songfile):
