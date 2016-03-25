@@ -1,5 +1,6 @@
 
 import os, sys
+import logging
 from . import MusicCat, NoMatchError
 
 def rtfm():
@@ -9,13 +10,11 @@ def rtfm():
     musiccat pause                pauses the current song (resumes if already paused)
     musiccat unpause              resumes the current song (restarts the song if already running)
     musiccat volume <volume>      sets the volume, float between 0.0 and 1.0
-    musiccat search <keyword>...  searches for a song by keywords and returns the best match""")
+    musiccat search <keyword>...  searches for a song by keywords and returns the best match
+Options:
+    --nologging                   disables logging output""")
 
 def main():
-    # assumed windows-only for now
-    winamp_path = os.path.expandvars("%PROGRAMFILES(X86)%/Winamp/winamp.exe")
-    musiccat = MusicCat(".", winamp_path, disable_nobrstm_exception=True)
-
     # command-line interface
     if len(sys.argv) < 2:
         rtfm()
@@ -23,6 +22,16 @@ def main():
     
     command = sys.argv[1]
     args = sys.argv[2:]
+    options = [arg for arg in args if arg.startswith("--")]
+    args = [arg for arg in args if not arg.startswith("--")]
+    
+    if "--nologging" in options:
+        logging.disable(logging.CRITICAL)
+    
+    # assumed windows-only for now
+    winamp_path = os.path.expandvars("%PROGRAMFILES(X86)%/Winamp/winamp.exe")
+    musiccat = MusicCat(".", winamp_path, disable_nobrstm_exception=True)
+    
     if command == "count":
         if args:
             category = args[0]
