@@ -1,6 +1,6 @@
 
 import os, sys
-from . import MusicCat
+from . import MusicCat, NoMatchError
 
 def rtfm():
     print("""Usage:

@@ -12,15 +12,15 @@ try:
 except: # Temporary hack until the builtins future module is properly installed
     input = raw_input
 
-# pip3 dependencies
-import Levenshtein
-import yaml
-
 # standard modules
 import os
 import subprocess
 import logging
 from collections import namedtuple
+
+# pip3 dependencies
+import Levenshtein
+import yaml
 
 from . import winamp
 
@@ -41,10 +41,14 @@ Game = namedtuple("Game", ("id", "title", "platform", "year", "series", "path"))
 
 class MusicCat(object):
 
-    def __init__(self, library_path, winamp_path, disable_nobrstm_exception=False, disable_auto_load=False):
+    def __init__(self, library_path, winamp_path,
+                 disable_nobrstm_exception=False,
+                 disable_id_conflict_exception=False,
+                 disable_auto_load=False):
         self.library_path = library_path
         self.winamp_path = winamp_path
         self.disable_nobrstm_exception = disable_nobrstm_exception
+        self.disable_id_conflict_exception = disable_id_conflict_exception
         self.songs = {}
         self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
@@ -56,7 +60,7 @@ class MusicCat(object):
     def refresh_song_list(self):
         """Clears songlist and loads all metadata.yaml files under self.library_path"""
         self.songs = {}
-        for root, dirs, files in os.walk(self.library_path):
+        for root, _, files in os.walk(self.library_path):
             for filename in files:
                 if filename.endswith(".yaml"):
                     metafilename = os.path.join(root, filename)
@@ -107,21 +111,27 @@ class MusicCat(object):
 
             # some sanity checks
             if newsong.id in self.songs:
-                self.log.critical("Songid conflict! {} exists twice, once in {} and once in {}!".format(newsong.id, self.songs[newsong.id].game.id, game.id))
-                raise SongIdConflictError(newsong.id)
+                self.log.error("Songid conflict! %s exists twice, once in %s and once in %s!",
+                                  newsong.id, self.songs[newsong.id].game.id, game.id)
+                if not self.disable_id_conflict_exception:
+                    raise SongIdConflictError(newsong.id)
             if newsong.id in newsongs:
-                self.log.critical("Songid conflict! {} exists twice in the same game, {}.".format(newsong.id, game.id))
-                raise SongIdConflictError(newsong.id)
+                self.log.error("Songid conflict! %s exists twice in the same game, %s.",
+                                  newsong.id, game.id)
+                if not self.disable_id_conflict_exception:
+                    raise SongIdConflictError(newsong.id)
             if not os.path.isfile(newsong.fullpath):
-                self.log.error("Songid {} doesn't have a BRSTM file at {}!".format(newsong.id, newsong.fullpath))
+                self.log.error("Songid %s doesn't have a BRSTM file at %s!",
+                               newsong.id, newsong.fullpath)
                 if not self.disable_nobrstm_exception:
                     raise FileNotFoundError(newsong.fullpath)
             # add to song list!
             self.songs[newsong.id] = newsong
 
     def _play_file(self, songfile):
-        """Plays the given song file. 
-        Though this may appear to, using subprocess.Popen does not leak memory because winamp makes the processes all exit."""
+        """Plays the given song file.
+        Though this may appear to, using subprocess.Popen does not leak memory
+        because winamp makes the processes all exit."""
         self.winamp.stop()
         self.winamp.clearPlaylist()
         subprocess.Popen('"{0}" "{1}"'.format(self.winamp_path, songfile))
@@ -136,7 +146,8 @@ class MusicCat(object):
         results = []
         for song in self.songs.values():
             # search in title and gametitle
-            haystack1, haystack2 = set(song.title.lower().split()), set(song.game.title.lower().split())
+            haystack1 = set(song.title.lower().split())
+            haystack2 = set(song.game.title.lower().split())
             ratio = 0
             for keyword in keywords:
                 keyword = keyword.lower()
@@ -160,9 +171,8 @@ class MusicCat(object):
         if song_id not in self.songs:
             raise NoMatchError(song_id)
         nextsong = self.songs[song_id]
-        self.current_song = nextsong
         self._play_file(nextsong.fullpath)
-        self.log.info("Now playing {}".format(nextsong))
+        self.log.info("Now playing %s", nextsong)
 
     def set_volume(self, volume):
         """Update the volume. Volume goes from 0.0 to 1.0"""
