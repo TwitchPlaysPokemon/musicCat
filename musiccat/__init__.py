@@ -89,7 +89,7 @@ class MusicCat(object):
 
     def _import_metadata(self, metafilename):
         """Import metadata given a metadata filename. Assumed to be one game per metadata file."""
-        with open(metafilename) as metafile:
+        with open(metafilename, encoding="utf-8") as metafile:
             gamedata = yaml.load(metafile)
         path = os.path.dirname(metafilename)
         newsongs = {}
