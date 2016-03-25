@@ -2,7 +2,7 @@
 from setuptools import setup
 setup(
     name="musiccat",
-    version="3.1.2",
+    version="3.2-dev",
     packages=["musiccat"],
     install_requires=['pyyaml', 'python-Levenshtein', 'pypiwin32'],
 
