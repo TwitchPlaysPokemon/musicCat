@@ -114,6 +114,13 @@ class MusicCat(object):
             #convert single end time to list
             elif (type(song["ends"]) == int) or (type(song["ends"]) == float):
                 song["ends"] = [song["ends"]]
+            elif type(song["ends"]) == str: 
+                #support "minute:second" specification, e.g "2:30"
+                if song["ends"].count(":") == 1:
+                    minutes, seconds = song["ends"].split(":")
+                    song["ends"] = [int(minutes)*60 + int(seconds)]
+                else:
+                    raise ValueError(song["ends"])
             
             newsong = Song(**song)
 
