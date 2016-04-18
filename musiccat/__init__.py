@@ -50,7 +50,7 @@ class MusicCat(object):
         self.disable_nobrstm_exception = disable_nobrstm_exception
         self.disable_id_conflict_exception = disable_id_conflict_exception
         self.songs = {}
-        #self.winamp = winamp.Winamp()
+        self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
         self.paused = False
 
