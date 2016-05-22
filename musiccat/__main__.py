@@ -5,14 +5,17 @@ from . import MusicCat, NoMatchError
 
 def rtfm():
     print("""Usage:
-    musiccat count [category]     prints the total amount of songs found. filtered by a category if supplied
-    musiccat play <song_id>       plays the song identified by the given song id
-    musiccat pause                pauses the current song (resumes if already paused)
-    musiccat unpause              resumes the current song (restarts the song if already running)
-    musiccat volume <volume>      sets the volume, float between 0.0 and 1.0
-    musiccat search <keyword>...  searches for a song by keywords and returns the best match
+    musiccat [options] count [category]     prints the total amount of songs found. filtered by a category if supplied
+    musiccat [options] verify               prints missing and unused songfiles
+    musiccat [options] play <song_id>       plays the song identified by the given song id
+    musiccat [options] pause                pauses the current song (resumes if already paused)
+    musiccat [options] unpause              resumes the current song (restarts the song if already running)
+    musiccat [options] volume <volume>      sets the volume, float between 0.0 and 1.0
+    musiccat [options] search <keyword>...  searches for a song by keywords and returns the best match
 Options:
-    --nologging                   disables logging output""")
+    --nologging                   disables logging output
+    --metapath=<path>             path to the metadata directory
+    --filepath=<path>             path to the songfiles""")
 
 def main():
     # command-line interface
@@ -20,17 +23,36 @@ def main():
         rtfm()
         return
     
-    command = sys.argv[1]
-    args = sys.argv[2:]
-    options = [arg for arg in args if arg.startswith("--")]
-    args = [arg for arg in args if not arg.startswith("--")]
+    args = sys.argv[1:]
+    options = {}
+    while args:
+        arg = args[0]
+        for option in ("--nologging", "--metapath", "--filepath"):
+            if arg.startswith(option):
+                if "=" not in arg:
+                    options[option] = None
+                else:
+                    options[option] = arg.split("=", maxsplit=1)[1]
+                args.pop(0)
+                break
+        else:
+            break
+    
+    command = ""
+    if args:
+        command = args.pop(0)
     
     if "--nologging" in options:
         logging.disable(logging.CRITICAL)
     
     # assumed windows-only for now
     winamp_path = os.path.expandvars("%PROGRAMFILES(X86)%/Winamp/winamp.exe")
-    musiccat = MusicCat(".", winamp_path, disable_nobrstm_exception=True)
+    musiccat = MusicCat(
+        options.get("--metapath", "."),
+        winamp_path,
+        disable_nobrstm_exception=True,
+        songfile_path=options.get("--filepath"),
+    )
     
     if command == "count":
         if args:
@@ -39,6 +61,17 @@ def main():
             print("Number of songs in category %s: %d" % (category, count))
         else:
             print("Number of songs: %d" % len(musiccat.songs))
+    elif command == "verify":
+        present_files = set()
+        for root, _, files in os.walk(musiccat.songfile_path):
+            for file in files:
+                if not file.endswith(".yaml"):
+                    present_files.add(os.path.join(root, file))
+        metadata_files = set(s.fullpath for s in musiccat.songs.values())
+        for missing in metadata_files - present_files:
+            print("Missing songfile {}".format(missing))
+        for unused in present_files - metadata_files:
+            print("Unused songfile {}".format(unused))
     elif command == "play" and args:
         try:
             musiccat.play_song(args[0])

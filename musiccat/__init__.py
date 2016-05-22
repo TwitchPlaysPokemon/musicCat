@@ -41,12 +41,13 @@ Game = namedtuple("Game", ("id", "title", "platform", "year", "series", "path"))
 
 class MusicCat(object):
 
-    def __init__(self, library_path, winamp_path,
+    def __init__(self, library_path, winamp_path, songfile_path=None,
                  disable_nobrstm_exception=False,
                  disable_id_conflict_exception=False,
                  disable_auto_load=False):
-        self.library_path = library_path
+        self.library_path = os.path.abspath(library_path)
         self.winamp_path = winamp_path
+        self.songfile_path = os.path.abspath(songfile_path or library_path)
         self.disable_nobrstm_exception = disable_nobrstm_exception
         self.disable_id_conflict_exception = disable_id_conflict_exception
         self.songs = {}
@@ -64,6 +65,7 @@ class MusicCat(object):
             for filename in files:
                 if filename.endswith(".yaml"):
                     metafilename = os.path.join(root, filename)
+                    metafilename = os.path.relpath(metafilename, self.library_path)
                     try:
                         self._import_metadata(metafilename)
                     except Exception as e:
@@ -90,7 +92,7 @@ class MusicCat(object):
 
     def _import_metadata(self, metafilename):
         """Import metadata given a metadata filename. Assumed to be one game per metadata file."""
-        with open(metafilename, encoding="utf-8") as metafile:
+        with open(os.path.join(self.library_path, metafilename), encoding="utf-8") as metafile:
             gamedata = yaml.load(metafile)
         path = os.path.dirname(metafilename)
         newsongs = {}
@@ -101,7 +103,7 @@ class MusicCat(object):
         game = Game(**gamedata)
 
         for song in songs:
-            song["fullpath"] = os.path.join(path, song["path"])
+            song["fullpath"] = os.path.join(self.songfile_path, path, song["path"])
             song["game"] = game
 
             # convert single type to a stored list
