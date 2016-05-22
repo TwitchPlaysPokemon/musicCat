@@ -68,9 +68,9 @@ def main():
                 if not file.endswith(".yaml"):
                     present_files.add(os.path.join(root, file))
         metadata_files = set(s.fullpath for s in musiccat.songs.values())
-        for missing in metadata_files - present_files:
+        for missing in sorted(metadata_files - present_files):
             print("Missing songfile {}".format(missing))
-        for unused in present_files - metadata_files:
+        for unused in sorted(present_files - metadata_files):
             print("Unused songfile {}".format(unused))
     elif command == "play" and args:
         try:
