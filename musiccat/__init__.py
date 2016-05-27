@@ -37,7 +37,7 @@ class SongIdConflictError(ValueError):
         self.song_id = song_id
 
 Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath", "ends"))
-Game = namedtuple("Game", ("id", "title", "platform", "year", "series", "path"))
+Game = namedtuple("Game", ("id", "title", "platform", "year", "series"))
 
 class MusicCat(object):
 
