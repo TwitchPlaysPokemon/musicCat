@@ -22,7 +22,7 @@ from collections import namedtuple
 import Levenshtein
 import yaml
 
-from . import winamp
+#from . import winamp
 
 class NoMatchError(ValueError):
     """Raised when a song id fails to match a song with any confidence"""
@@ -37,7 +37,7 @@ class SongIdConflictError(ValueError):
         self.song_id = song_id
 
 Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath", "ends"))
-Game = namedtuple("Game", ("id", "title", "platform", "year", "series"))
+Game = namedtuple("Game", ("id", "title", "platform", "year", "series","is_fanwork"))
 
 class MusicCat(object):
 
@@ -51,7 +51,7 @@ class MusicCat(object):
         self.disable_nobrstm_exception = disable_nobrstm_exception
         self.disable_id_conflict_exception = disable_id_conflict_exception
         self.songs = {}
-        self.winamp = winamp.Winamp()
+        #self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
         self.paused = False
 
@@ -81,6 +81,7 @@ class MusicCat(object):
        year:
        platform:
        path: # No longer used
+       is_fanwork: bool #optional
        songs:
         - id:
           title:
@@ -100,6 +101,8 @@ class MusicCat(object):
         songs = gamedata.pop("songs")
         if 'series' not in gamedata:
             gamedata['series'] = None
+        if 'is_fanwork' not in gamedata:
+            gamedata['is_fanwork'] = False
         game = Game(**gamedata)
 
         for song in songs:
