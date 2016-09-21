@@ -6,7 +6,7 @@ from . import MusicCat, NoMatchError
 def rtfm():
     print("""Usage:
     musiccat [options] count [category]     prints the total amount of songs found. filtered by a category if supplied
-    musiccat [options] verify               prints missing and unused songfiles
+    musiccat [options] verify               verifies the integrity and correctness of the music library. prints errors.
     musiccat [options] play <song_id>       plays the song identified by the given song id
     musiccat [options] pause                pauses the current song (resumes if already paused)
     musiccat [options] unpause              resumes the current song (restarts the song if already running)
@@ -14,8 +14,9 @@ def rtfm():
     musiccat [options] search <keyword>...  searches for a song by keywords and returns the best match
 Options:
     --nologging                   disables logging output
-    --metapath=<path>             path to the metadata directory
-    --filepath=<path>             path to the songfiles""")
+    --metapath=<path>             path to the metadata directory. default is current path
+    --filepath=<path>             path to the songfiles. default is current path
+    --showunused                  for verifying. Show unused songfiles""")
 
 def main():
     # command-line interface
@@ -27,7 +28,7 @@ def main():
     options = {}
     while args:
         arg = args[0]
-        for option in ("--nologging", "--metapath", "--filepath"):
+        for option in ("--nologging", "--metapath", "--filepath", "--showunused"):
             if arg.startswith(option):
                 if "=" not in arg:
                     options[option] = None
@@ -68,10 +69,19 @@ def main():
                 if not file.endswith(".yaml"):
                     present_files.add(os.path.join(root, file))
         metadata_files = set(s.fullpath for s in musiccat.songs.values())
+        if "--showunused" in options:
+            for unused in sorted(present_files - metadata_files):
+                print("Unused songfile {}".format(unused))
         for missing in sorted(metadata_files - present_files):
             print("Missing songfile {}".format(missing))
-        for unused in sorted(present_files - metadata_files):
-            print("Unused songfile {}".format(unused))
+        # look for duplicated metadata entries (2 entries with same songfile)
+        existing = set()
+        for entry in musiccat.songs.values():
+            path = entry.fullpath
+            if path in existing:
+                print("Duplicated use of songfile {}".format(path))
+            else:
+                existing.add(path)
     elif command == "play" and args:
         try:
             musiccat.play_song(args[0])
