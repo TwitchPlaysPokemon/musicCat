@@ -22,7 +22,7 @@ from collections import namedtuple
 import Levenshtein
 import yaml
 
-#from . import winamp
+from . import winamp
 
 class NoMatchError(ValueError):
     """Raised when a song id fails to match a song with any confidence"""
@@ -51,7 +51,7 @@ class MusicCat(object):
         self.disable_nobrstm_exception = disable_nobrstm_exception
         self.disable_id_conflict_exception = disable_id_conflict_exception
         self.songs = {}
-        #self.winamp = winamp.Winamp()
+        self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
         self.paused = False
 
