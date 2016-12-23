@@ -6,3 +6,4 @@ config.yml
 .pydevproject
 .project
 .settings/
+.idea/
