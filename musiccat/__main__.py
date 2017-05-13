@@ -82,6 +82,15 @@ def main():
                 print("Duplicated use of songfile {}".format(path))
             else:
                 existing.add(path)
+            # check for null values
+            for key, value in entry._asdict().items():
+                if value is None and key not in ("ends",):
+                    print("Empty field {} for songfile {}".format(key, path))
+            for key, value in entry.game._asdict().items():
+                if value is None and key not in ("series",):
+                    print("Empty field game.{} for songfile {}".format(key, path))
+
+
     elif command == "play" and args:
         try:
             musiccat.play_song(args[0])
