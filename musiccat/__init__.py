@@ -89,6 +89,7 @@ class MusicCat(object):
           type: type
           types: [type, type] #one or the other, depending on multiple
           ends: [seconds] #optional
+          tags: #optional
     """
 
     def _import_metadata(self, metafilename):
@@ -168,7 +169,7 @@ class MusicCat(object):
         self.winamp.clearPlaylist()
         subprocess.Popen('"{0}" "{1}"'.format(self.winamp_path, songfile))
 
-    def search(self, keywords, cutoff=0.3):
+    def search(self, keywords, cutoff=0.3, required_tag=None):
         """Search through all songs in self.songs.
         Determines all songs being matched by the supplied keywords.
         Returns a list of tuples of the form (song, matchratio), where matchratio goes from <cutoff> to 1.0;
@@ -177,6 +178,11 @@ class MusicCat(object):
         num_keywords = len(keywords)
         results = []
         for song in self.songs.values():
+        
+            if required_tag is not None:
+                if song.tags is None or required_tag not in song.tags:
+                    continue
+        
             # search in title and gametitle
             haystack1 = set(song.title.lower().split())
             haystack2 = set(song.game.title.lower().split())

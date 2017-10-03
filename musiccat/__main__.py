@@ -84,7 +84,7 @@ def main():
                 existing.add(path)
             # check for null values
             for key, value in entry._asdict().items():
-                if value is None and key not in ("ends",):
+                if value is None and key not in ("ends","tags",):
                     print("Empty field {} for songfile {}".format(key, path))
             for key, value in entry.game._asdict().items():
                 if value is None and key not in ("series",):
