@@ -36,7 +36,7 @@ class SongIdConflictError(ValueError):
         super().__init__("Song ID {} already in use.".format(song_id))
         self.song_id = song_id
 
-Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath", "ends"))
+Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath", "ends", "tags"))
 Game = namedtuple("Game", ("id", "title", "platform", "year", "series","is_fanwork"))
 
 class MusicCat(object):
@@ -126,6 +126,14 @@ class MusicCat(object):
                     song["ends"] = [int(minutes)*60 + int(seconds)]
                 else:
                     raise ValueError(song["ends"])
+                    
+                    
+            #if no tags provided, say so explicitly
+            if "tags" not in song:
+                song["tags"] = None
+            #convert single end time to list
+            elif type(song["tags"]) == str:
+                song["tags"] = [song["tags"]]
             
             newsong = Song(**song)
 
