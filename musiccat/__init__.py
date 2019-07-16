@@ -21,6 +21,7 @@ from collections import namedtuple
 # pip3 dependencies
 import Levenshtein
 import yaml
+from yaml import Loader
 
 from . import winamp
 
@@ -95,7 +96,7 @@ class MusicCat(object):
     def _import_metadata(self, metafilename):
         """Import metadata given a metadata filename. Assumed to be one game per metadata file."""
         with open(os.path.join(self.library_path, metafilename), encoding="utf-8") as metafile:
-            gamedata = yaml.load(metafile)
+            gamedata = yaml.load(metafile, Loader=Loader)
         path = os.path.dirname(metafilename)
         newsongs = {}
 
