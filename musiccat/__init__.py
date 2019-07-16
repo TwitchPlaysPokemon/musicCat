@@ -193,7 +193,7 @@ class MusicCat(object):
                 # determine best keyword match
                 subratio1 = max(Levenshtein.ratio(keyword, word) for word in haystack1)
                 subratio2 = max(Levenshtein.ratio(keyword, word) for word in haystack2)
-                subratio = max(subratio1,subratio2)
+                subratio = max(subratio1,subratio2*0.9)
                 if subratio > 0.7:
                     # assume low ratios are no match
                     ratio += subratio
