@@ -21,6 +21,7 @@ from collections import namedtuple
 # pip3 dependencies
 import Levenshtein
 import yaml
+from yaml import Loader
 
 from . import winamp
 
@@ -95,7 +96,7 @@ class MusicCat(object):
     def _import_metadata(self, metafilename):
         """Import metadata given a metadata filename. Assumed to be one game per metadata file."""
         with open(os.path.join(self.library_path, metafilename), encoding="utf-8") as metafile:
-            gamedata = yaml.load(metafile)
+            gamedata = yaml.load(metafile, Loader=Loader)
         path = os.path.dirname(metafilename)
         newsongs = {}
 
@@ -192,7 +193,7 @@ class MusicCat(object):
                 # determine best keyword match
                 subratio1 = max(Levenshtein.ratio(keyword, word) for word in haystack1)
                 subratio2 = max(Levenshtein.ratio(keyword, word) for word in haystack2)
-                subratio = max(subratio1,subratio2*0.8)
+                subratio = max(subratio1,subratio2*0.9)
                 if subratio > 0.7:
                     # assume low ratios are no match
                     ratio += subratio
