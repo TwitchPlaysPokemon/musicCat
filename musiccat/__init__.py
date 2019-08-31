@@ -212,6 +212,7 @@ class MusicCat(object):
         nextsong = self.songs[song_id]
         self._play_file(nextsong.fullpath)
         self.log.info("Now playing %s", nextsong)
+        self.paused = False
 
     def set_volume(self, volume):
         """Update the volume. Volume goes from 0.0 to 1.0"""
