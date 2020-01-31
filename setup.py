@@ -4,7 +4,7 @@ setup(
     name="musiccat",
     version="3.5.3",
     packages=["musiccat"],
-    install_requires=['pyyaml', 'python-Levenshtein', 'pypiwin32'],
+    install_requires=['pyyaml', 'python-Levenshtein-wheels', 'pypiwin32'],
 
     author="1hlixed",
     description="TPPBR MusicCat Song Library",
