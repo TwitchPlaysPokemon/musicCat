@@ -21,7 +21,7 @@ from collections import namedtuple
 # pip3 dependencies
 import Levenshtein
 import yaml
-from yaml import Loader
+from yaml import CLoader
 
 from . import winamp
 
@@ -30,7 +30,7 @@ class NoMatchError(ValueError):
     def __init__(self, song_id):
         super().__init__("Song ID {} not found.".format(song_id))
         self.song_id = song_id
-        
+
 class SongIdConflictError(ValueError):
     """Raised when a song id occurs twice."""
     def __init__(self, song_id):
@@ -96,7 +96,7 @@ class MusicCat(object):
     def _import_metadata(self, metafilename):
         """Import metadata given a metadata filename. Assumed to be one game per metadata file."""
         with open(os.path.join(self.library_path, metafilename), encoding="utf-8") as metafile:
-            gamedata = yaml.load(metafile, Loader=Loader)
+            gamedata = yaml.load(metafile, Loader=CLoader)
         path = os.path.dirname(metafilename)
         newsongs = {}
 
@@ -128,15 +128,15 @@ class MusicCat(object):
                     song["ends"] = [int(minutes)*60 + int(seconds)]
                 else:
                     raise ValueError(song["ends"])
-                    
-                    
+
+
             #if no tags provided, say so explicitly
             if "tags" not in song:
                 song["tags"] = None
             #convert single end time to list
             elif type(song["tags"]) == str:
                 song["tags"] = [song["tags"]]
-            
+
             newsong = Song(**song)
 
             # some sanity checks
@@ -179,11 +179,11 @@ class MusicCat(object):
         num_keywords = len(keywords)
         results = []
         for song in self.songs.values():
-        
+
             if required_tag is not None:
                 if song.tags is None or required_tag not in song.tags:
                     continue
-        
+
             # search in title and gametitle
             haystack1 = set(song.title.lower().split())
             haystack2 = set(song.game.title.lower().split())
@@ -198,11 +198,11 @@ class MusicCat(object):
                     # assume low ratios are no match
                     ratio += subratio
             ratio /= num_keywords
-            
+
             if ratio > cutoff:
                 # random cutoff value
                 results.append((song, ratio))
-            
+
         return sorted(results, key=lambda s: s[1], reverse=True)
 
     def play_song(self, song_id):
