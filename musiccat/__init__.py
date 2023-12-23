@@ -23,7 +23,10 @@ import Levenshtein
 import yaml
 from yaml import CLoader
 
-from . import winamp
+try:
+    from . import winamp
+except:
+    pass
 
 class NoMatchError(ValueError):
     """Raised when a song id fails to match a song with any confidence"""
@@ -42,17 +45,20 @@ Game = namedtuple("Game", ("id", "title", "platform", "year", "series","is_fanwo
 
 class MusicCat(object):
 
-    def __init__(self, library_path, winamp_path, songfile_path=None,
+    def __init__(self, library_path, winamp_path=None, songfile_path=None,
                  disable_nobrstm_exception=False,
+                 disable_brstm_check=False,
                  disable_id_conflict_exception=False,
                  disable_auto_load=False):
         self.library_path = os.path.abspath(library_path)
-        self.winamp_path = winamp_path
         self.songfile_path = os.path.abspath(songfile_path or library_path)
         self.disable_nobrstm_exception = disable_nobrstm_exception
+        self.disable_brstm_check = disable_brstm_check
         self.disable_id_conflict_exception = disable_id_conflict_exception
         self.songs = {}
-        self.winamp = winamp.Winamp()
+        if winamp_path:
+            self.winamp_path = winamp_path
+            self.winamp = winamp.Winamp()
         self.log = logging.getLogger("musicCat")
         self.paused = False
 
@@ -97,6 +103,11 @@ class MusicCat(object):
         """Import metadata given a metadata filename. Assumed to be one game per metadata file."""
         with open(os.path.join(self.library_path, metafilename), encoding="utf-8") as metafile:
             gamedata = yaml.load(metafile, Loader=CLoader)
+        
+        # Skip unrelated yaml files
+        if not gamedata.get("songs",None):
+            return
+
         path = os.path.dirname(metafilename)
         newsongs = {}
 
@@ -150,7 +161,7 @@ class MusicCat(object):
                                   newsong.id, game.id)
                 if not self.disable_id_conflict_exception:
                     raise SongIdConflictError(newsong.id)
-            if not os.path.isfile(newsong.fullpath):
+            if not self.disable_brstm_check and not os.path.isfile(newsong.fullpath):
                 self.log.error("Songid %s doesn't have a BRSTM file at %s!",
                                newsong.id, newsong.fullpath)
                 if not self.disable_nobrstm_exception:

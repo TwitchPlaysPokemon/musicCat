@@ -1,6 +1,7 @@
 
 import os, sys
 import logging
+import json
 from . import MusicCat, NoMatchError
 
 def rtfm():
@@ -12,6 +13,7 @@ def rtfm():
     musiccat [options] unpause              resumes the current song (restarts the song if already running)
     musiccat [options] volume <volume>      sets the volume, float between 0.0 and 1.0
     musiccat [options] search <keyword>...  searches for a song by keywords and returns the best match
+    musiccat [options] listing <file>       generates a full json listing to file
 Options:
     --nologging                   disables logging output
     --metapath=<path>             path to the metadata directory. default is current path
@@ -46,6 +48,39 @@ def main():
     if "--nologging" in options:
         logging.disable(logging.CRITICAL)
     
+    if command == "listing" and args:
+        print("Processing music library...")
+        musiccat = MusicCat(options.get("--metapath", "."), disable_brstm_check=True)
+        filepath = os.path.abspath(args[0])
+        print("Generating listing...")
+        listing = {}
+        # Song = namedtuple("Song", ("id", "title", "path", "types", "game", "fullpath", "ends", "tags"))
+        # Game = namedtuple("Game", ("id", "title", "platform", "year", "series","is_fanwork"))
+        for song in musiccat.songs.values():
+            if not listing.get(song.game.id, None):
+                listing[song.game.id] = {
+                    "id":song.game.id, 
+                    "title": song.game.title,
+                    "platform": song.game.platform,
+                    "year": song.game.year,
+                    "series": song.game.series,
+                    "is_fanwork": song.game.is_fanwork,
+                    "songs": []
+                }
+            listing[song.game.id]["songs"].append({
+                "id": song.id,
+                "title": song.title,
+                "types": song.types,
+                "ends": song.ends,
+                "tags": song.tags                 
+            })
+        print("Writing listing to {}...".format(filepath))
+        f = open(filepath, "w")
+        f.write(json.dumps(listing, separators=(',', ':')))
+        f.close()
+        print("Finished.")
+        return
+
     # assumed windows-only for now
     winamp_path = os.path.expandvars("%PROGRAMFILES(X86)%/Winamp/winamp.exe")
     musiccat = MusicCat(
